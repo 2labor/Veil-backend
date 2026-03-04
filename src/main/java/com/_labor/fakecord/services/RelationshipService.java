@@ -10,6 +10,7 @@ import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.domain.enums.RelationshipStatus;
 
 public interface RelationshipService {
+  void createFriendship(UUID userA, UUID userB);
   void removeFriend(UUID userId, UUID friendId);
   void blockUser(UUID senderId, UUID targetId);
   void unblockUser(UUID senderId, UUID targetId);

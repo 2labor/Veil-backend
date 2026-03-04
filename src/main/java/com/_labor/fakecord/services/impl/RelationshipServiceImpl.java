@@ -16,6 +16,7 @@ import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.services.RelationshipService;
 
 import org.springframework.transaction.annotation.Transactional;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,6 +28,31 @@ public class RelationshipServiceImpl implements RelationshipService{
   private final RelationshipRepository repository;
   private final UserRepository userRepository;
   private final FriendRequestRepository friendRequestRepository;
+
+  @Override
+  @Transactional
+  public void createFriendship(UUID userA, UUID userB) {
+    if (userA.equals(userB)) {
+      throw new RuntimeException("You cannot add yourself in friends");
+    }
+
+    repository.findByUserIdAndTargetId(userB, userB).ifPresent(r -> {
+      throw new RuntimeException("Already friends!");
+    });
+
+    Relationships r1 = new Relationships();
+    r1.setUser(userRepository.getReferenceById(userA));
+    r1.setTarget(userRepository.getReferenceById(userB));
+    r1.setStatus(RelationshipStatus.FRIENDS);
+
+    Relationships r2 = new Relationships();
+    r2.setUser(userRepository.getReferenceById(userB));
+    r2.setTarget(userRepository.getReferenceById(userA));
+    r2.setStatus(RelationshipStatus.FRIENDS);
+  
+    repository.saveAll(List.of(r1, r2));
+    log.info("Friendship established between {} and {}", userA, userB);
+  }
 
   @Override
   @Transactional
@@ -97,6 +123,5 @@ public class RelationshipServiceImpl implements RelationshipService{
   @Transactional(readOnly = true)
   public long getMutualFriendsCount(UUID userA, UUID userB) {
     return repository.countMutualFriends(userA, userB);
-  }
-  
+  }  
 }
