@@ -33,5 +33,30 @@ public interface RelationshipRepository extends JpaRepository<Relationships, UUI
     WHERE r.user.id = :userId AND r.status = :status
     ORDER BY p.displayName ASC
     """)
-  Slice<UserProfileShort> findAllFriendsShort(@Param("userId") UUID userId, @Param("status") RelationshipStatus status, Pageable pageable); 
+  Slice<UserProfileShort> findAllFriendsShort(@Param("userId") UUID userId, @Param("status") RelationshipStatus status, Pageable pageable);
+  
+  @Query("""
+    SELECT new com._labor.fakecord.domain.dto.UserProfileShort(
+      p.id, p.displayName, p.avatarUrl, p.statusPreference
+    )
+    FROM Relationships r1
+    JOIN Relationships r2 ON r1.target.id = r2.target.id
+    JOIN r1.target.userProfile p
+    WHERE r1.user.id = :userA 
+      AND r2.user.id = :userB 
+      AND r1.status = com._labor.fakecord.domain.enums.RelationshipStatus.FRIENDS
+      AND r2.status = com._labor.fakecord.domain.enums.RelationshipStatus.FRIENDS
+  """)
+  List<UserProfileShort> findMutualFriends(@Param("userA") UUID userA, @Param("userB") UUID userB);
+
+  @Query("""
+    SELECT COUNT(r1.target.id)
+    FROM Relationships r1
+    JOIN Relationships r2 ON r1.target.id = r2.target.id
+    WHERE r1.user.id = :userA 
+      AND r2.user.id = :userB 
+      AND r1.status = com._labor.fakecord.domain.enums.RelationshipStatus.FRIENDS
+      AND r2.status = com._labor.fakecord.domain.enums.RelationshipStatus.FRIENDS
+  """)
+  long countMutualFriends(@Param("userA") UUID userA, @Param("userB") UUID userB);
 }
