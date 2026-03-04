@@ -17,6 +17,10 @@ import com._labor.fakecord.services.RelationshipService;
 
 import org.springframework.transaction.annotation.Transactional;
 
+import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
+import com._labor.fakecord.infrastructure.outbox.domain.RelationshipActionPayload;
+import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,6 +32,7 @@ public class RelationshipServiceImpl implements RelationshipService{
   private final RelationshipRepository repository;
   private final UserRepository userRepository;
   private final FriendRequestRepository friendRequestRepository;
+  private final OutboxService outboxService;
 
   @Override
   @Transactional
@@ -36,7 +41,7 @@ public class RelationshipServiceImpl implements RelationshipService{
       throw new RuntimeException("You cannot add yourself in friends");
     }
 
-    repository.findByUserIdAndTargetId(userB, userB).ifPresent(r -> {
+    repository.findByUserIdAndTargetId(userA, userB).ifPresent(r -> {
       throw new RuntimeException("Already friends!");
     });
 
@@ -51,6 +56,13 @@ public class RelationshipServiceImpl implements RelationshipService{
     r2.setStatus(RelationshipStatus.FRIENDS);
   
     repository.saveAll(List.of(r1, r2));
+
+    outboxService.publish(
+      userA, 
+      OutboxEventType.SOCIAL_FRIENDSHIP_CREATED, 
+      new RelationshipActionPayload(userA, userB)
+    );
+
     log.info("Friendship established between {} and {}", userA, userB);
   }
 
@@ -59,6 +71,12 @@ public class RelationshipServiceImpl implements RelationshipService{
   public void removeFriend(UUID userId, UUID friendId) {
     log.info("Removing friendship between {} and {}", userId, friendId);
     repository.deleteByUserIdAndTargetIdOrUserIdAndTargetId(userId, friendId, friendId, userId);
+
+    outboxService.publish(
+      userId, 
+      OutboxEventType.SOCIAL_FRIENDSHIP_TERMINATED, 
+      new RelationshipActionPayload(userId, friendId)
+    );
   }
 
   @Override
@@ -81,6 +99,12 @@ public class RelationshipServiceImpl implements RelationshipService{
     block.setStatus(RelationshipStatus.BLOCKED);
 
     repository.save(block);
+
+    outboxService.publish(
+      senderId, 
+      OutboxEventType.SOCIAL_USER_BLOCKED, 
+      new RelationshipActionPayload(senderId, targetId)
+    );
     log.info("User {} blocked {}", senderId, targetId);
   }
 
@@ -90,6 +114,13 @@ public class RelationshipServiceImpl implements RelationshipService{
     repository.findByUserIdAndTargetId(senderId, targetId)
       .filter(r -> r.getStatus() == RelationshipStatus.BLOCKED)
       .ifPresent(repository::delete);
+
+    outboxService.publish(
+      senderId, 
+      OutboxEventType.SOCIAL_USER_UNBLOCKED,
+      new RelationshipActionPayload(senderId, targetId)
+    );
+
     log.info("User {} unblocked {}", senderId, targetId);
   }
 

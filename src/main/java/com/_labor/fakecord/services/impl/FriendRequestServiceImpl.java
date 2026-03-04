@@ -12,6 +12,11 @@ import com._labor.fakecord.domain.entity.FriendRequest;
 import com._labor.fakecord.domain.enums.RelationshipStatus;
 import com._labor.fakecord.domain.enums.RequestSource;
 import com._labor.fakecord.domain.enums.RequestStatus;
+import com._labor.fakecord.infrastructure.outbox.domain.FriendAcceptedPayload;
+import com._labor.fakecord.infrastructure.outbox.domain.FriendRequestPayload;
+import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
+import com._labor.fakecord.infrastructure.outbox.domain.RelationshipActionPayload;
+import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com._labor.fakecord.repository.FriendRequestRepository;
 import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.services.FriendRequestService;
@@ -28,6 +33,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
   private final FriendRequestRepository repository;
   private final RelationshipService relationshipService;
   private final UserRepository userRepository;
+  private final OutboxService outboxService;
 
   @Override
   @Transactional
@@ -58,6 +64,12 @@ public class FriendRequestServiceImpl implements FriendRequestService {
     request.setStatus(RequestStatus.PENDING);
 
     repository.save(request);
+
+    outboxService.publish(
+      senderId, 
+      OutboxEventType.SOCIAL_FRIEND_REQUEST_SENT,
+      new FriendRequestPayload(senderId, targetId, source.name())
+    );
     log.info("Friend request sent from {} to {}", senderId, targetId);
   }
 
@@ -71,6 +83,13 @@ public class FriendRequestServiceImpl implements FriendRequestService {
     relationshipService.createFriendship(requesterId, currentUser);
 
     repository.delete(request);
+
+    outboxService.publish(
+      currentUser, 
+      OutboxEventType.SOCIAL_FRIEND_REQUEST_ACCEPTED, 
+      new FriendAcceptedPayload(currentUser, requesterId)
+    );
+
     log.info("User {} accepted friend request from {}", currentUser, requesterId);
   }
 
@@ -78,7 +97,19 @@ public class FriendRequestServiceImpl implements FriendRequestService {
   @Transactional
   public void declineOrCancelRequest(UUID senderId, UUID targetId) {
     repository.findBySenderIdAndTargetId(senderId, targetId)
-      .ifPresent(repository::delete);
+      .ifPresent(r -> {
+        OutboxEventType type = r.getSender().getId().equals(targetId) 
+          ? OutboxEventType.SOCIAL_FRIEND_REQUEST_DECLINED
+          : OutboxEventType.SOCIAL_FRIEND_REQUEST_CANCELLED;
+
+        outboxService.publish(
+          senderId, 
+          type,
+          new RelationshipActionPayload(senderId, targetId)
+        );
+
+        repository.delete(r);
+      });
     log.info("Request between {} and {} was cancelled/declined", senderId, targetId);
   }
 
@@ -89,6 +120,11 @@ public class FriendRequestServiceImpl implements FriendRequestService {
       r.setStatus(RequestStatus.IGNORED);
       repository.save(r);
     });
+
+    outboxService.publish(
+      currentUserId, 
+      OutboxEventType.SOCIAL_FRIEND_REQUEST_IGNORED,
+      new RelationshipActionPayload(currentUserId, requesterId));
   }
 
   @Override
