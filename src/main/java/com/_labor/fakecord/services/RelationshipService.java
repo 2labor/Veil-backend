@@ -11,7 +11,7 @@ import com._labor.fakecord.domain.enums.RelationshipStatus;
 
 public interface RelationshipService {
   void removeFriend(UUID userId, UUID friendId);
-  void blockFriend(UUID senderId, UUID targetId);
+  void blockUser(UUID senderId, UUID targetId);
   void unblockUser(UUID senderId, UUID targetId);
   Slice<UserProfileShort> getFriendsList(UUID userId, Pageable pageable);
   Slice<UserProfileShort> getBlockedUsers(UUID userId, Pageable pageable);
