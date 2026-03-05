@@ -22,14 +22,10 @@ public interface RelationshipRepository extends JpaRepository<Relationships, UUI
 
   @Query("""
     SELECT new com._labor.fakecord.domain.dto.UserProfileShort(
-      p.id, 
-      p.displayName, 
-      p.avatarUrl, 
-      p.statusPreference
+      p.id, p.displayName, p.avatarUrl, p.statusPreference
     )
-    FROM Relationships r
-    JOIN r.target t
-    JOIN t.userProfile p
+    FROM UserProfile p
+    JOIN Relationships r ON p.id = r.target.id
     WHERE r.user.id = :userId AND r.status = :status
     ORDER BY p.displayName ASC
     """)
@@ -39,9 +35,9 @@ public interface RelationshipRepository extends JpaRepository<Relationships, UUI
     SELECT new com._labor.fakecord.domain.dto.UserProfileShort(
       p.id, p.displayName, p.avatarUrl, p.statusPreference
     )
-    FROM Relationships r1
-    JOIN Relationships r2 ON r1.target.id = r2.target.id
-    JOIN r1.target.userProfile p
+    FROM UserProfile p
+    JOIN Relationships r1 ON p.id = r1.target.id
+    JOIN Relationships r2 ON p.id = r2.target.id
     WHERE r1.user.id = :userA 
       AND r2.user.id = :userB 
       AND r1.status = com._labor.fakecord.domain.enums.RelationshipStatus.FRIENDS
@@ -50,9 +46,10 @@ public interface RelationshipRepository extends JpaRepository<Relationships, UUI
   List<UserProfileShort> findMutualFriends(@Param("userA") UUID userA, @Param("userB") UUID userB);
 
   @Query("""
-    SELECT COUNT(r1.target.id)
-    FROM Relationships r1
-    JOIN Relationships r2 ON r1.target.id = r2.target.id
+    SELECT COUNT(p.id)
+    FROM UserProfile p
+    JOIN Relationships r1 ON p.id = r1.target.id
+    JOIN Relationships r2 ON p.id = r2.target.id
     WHERE r1.user.id = :userA 
       AND r2.user.id = :userB 
       AND r1.status = com._labor.fakecord.domain.enums.RelationshipStatus.FRIENDS

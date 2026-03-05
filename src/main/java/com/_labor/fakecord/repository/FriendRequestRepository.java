@@ -17,27 +17,25 @@ import com._labor.fakecord.domain.enums.RequestStatus;
 public interface FriendRequestRepository extends JpaRepository<FriendRequest, UUID>{
   Optional<FriendRequest> findBySenderIdAndTargetId(UUID userId, UUID targetId);
   List<FriendRequest> findByTargetIdAndStatus(UUID targetId, RequestStatus status);
-  List<FriendRequest> findBySenderAndStatus(UUID senderId, RequestStatus status);
+  List<FriendRequest> findBySenderIdAndStatus(UUID senderId, RequestStatus status);
 
   @Query("""
     SELECT new com._labor.fakecord.domain.dto.UserProfileShort(
       p.id, p.displayName, p.avatarUrl, p.statusPreference
     )
-    FROM FriendRequest fr
-    JOIN fr.sender s
-    JOIN s.userProfile p
+    FROM UserProfile p
+    JOIN FriendRequest fr ON p.user.id = fr.sender.id
     WHERE fr.target.id = :userId AND fr.status = :status
   """)
   Slice<UserProfileShort> findAllIncomingShort(@Param("userId") UUID userId, @Param("status") RequestStatus status, Pageable pageable);
 
   @Query("""
-    SELECT new com._labor.fakecord.domain.dto.UserProfileShort(
-      p.id, p.displayName, p.avatarUrl, p.statusPreference
-    )
-    FROM FriendRequest fr
-    JOIN fr.target t
-    JOIN t.userProfile p
-    WHERE fr.sender.id = :userId AND fr.status = :status
+      SELECT new com._labor.fakecord.domain.dto.UserProfileShort(
+        p.id, p.displayName, p.avatarUrl, p.statusPreference
+      )
+      FROM UserProfile p
+      JOIN FriendRequest fr ON p.user.id = fr.target.id
+      WHERE fr.sender.id = :userId AND fr.status = :status
   """)
   Slice<UserProfileShort> findAllOutgoingShort(@Param("userId") UUID userId, @Param("status") RequestStatus status, Pageable pageable);
 }
