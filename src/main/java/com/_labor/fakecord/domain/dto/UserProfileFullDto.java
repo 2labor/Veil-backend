@@ -7,6 +7,7 @@ import com._labor.fakecord.domain.enums.UserStatus;
 
 import lombok.Builder;
 
+
 @Builder(toBuilder = true)
 public record UserProfileFullDto(
   UUID userId,

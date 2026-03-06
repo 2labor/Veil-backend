@@ -26,7 +26,7 @@ public class WebSocketEventListener {
   @EventListener
   public void handleWebSocketConnectListener(SessionConnectEvent event) {
     StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
-    UUID userId = UUID.fromString(getUserId(accessor));
+    UUID userId = UUID.fromString(getUserId(accessor)); 
 
     if (null != userId) {
       presenceService.processUserOnline(userId);

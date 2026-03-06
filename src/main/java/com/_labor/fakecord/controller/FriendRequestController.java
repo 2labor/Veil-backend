@@ -39,7 +39,7 @@ public class FriendRequestController {
   public ResponseEntity<Void> sendRequest(
     @AuthenticationPrincipal UserDetails currentUserId,
     @PathVariable UUID targetId,
-    @RequestParam(defaultValue = "FRIEND_SEARCH") RequestSource source
+    @RequestParam(defaultValue = "SEARCH") RequestSource source
   ) {
     UUID userId = getUserId(currentUserId);
     service.sendFriendRequest(userId, targetId, source);
