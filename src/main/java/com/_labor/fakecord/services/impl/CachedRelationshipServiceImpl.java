@@ -48,6 +48,7 @@ public class CachedRelationshipServiceImpl implements RelationshipQueryService {
     CachedSlice<UserProfileShort> cache = localCache.getIfPresent(cacheKey);
     if (cache != null) return convertToSlice(cache, pageable);
 
+    @SuppressWarnings("unchecked")
     CachedSlice<UserProfileShort> redisCache = (CachedSlice<UserProfileShort>) redisTemplate.opsForValue().get(cacheKey);
     if (redisCache != null) {
       localCache.put(cacheKey, redisCache);
