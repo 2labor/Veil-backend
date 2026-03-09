@@ -15,4 +15,6 @@ public interface FriendRequestService {
   void ignoreRequest(UUID currentUserId, UUID requesterId);
   Slice<UserProfileShort> getIncomingRequests(UUID userId, Pageable pageable);
   Slice<UserProfileShort> getOutgoingRequests(UUID userId, Pageable pageable);
+  long getCounterIncomingRequests(UUID userId);
+  long getCounterOutgoingRequests(UUID userId);
 }

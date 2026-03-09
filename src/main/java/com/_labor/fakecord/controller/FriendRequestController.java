@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com._labor.fakecord.domain.dto.FriendRequestSummary;
 import com._labor.fakecord.domain.dto.UserProfileShort;
 
 
@@ -98,6 +99,20 @@ public class FriendRequestController {
     UUID userId = getUserId(currentUserId);
 
     return ResponseEntity.ok(service.getOutgoingRequests(userId, pageable));
+  }
+
+  @GetMapping("/summary")
+  public ResponseEntity<FriendRequestSummary> getRequestCounter(
+    @AuthenticationPrincipal UserDetails userDetails
+  ) {
+    UUID userId = getUserId(userDetails);
+    long incoming = service.getCounterIncomingRequests(userId);
+    long outgoing = service.getCounterOutgoingRequests(userId);
+
+    return ResponseEntity.ok(new FriendRequestSummary(
+      incoming,
+      outgoing
+    ));
   }
 
   private UUID getUserId(UserDetails userDetails) {

@@ -140,4 +140,15 @@ public class FriendRequestServiceImpl implements FriendRequestService {
   public Slice<UserProfileShort> getOutgoingRequests(UUID userId, Pageable pageable) {
     return repository.findAllOutgoingShort(userId, RequestStatus.PENDING, pageable);
   }
+
+  @Override
+  @Transactional(readOnly = true)
+  public long getCounterIncomingRequests(UUID userId) {
+    return repository.countIncomingRequests(userId);
+  }
+
+  @Override
+  public long getCounterOutgoingRequests(UUID userId) {
+    return repository.countOutgoingRequests(userId);
+  }
 }

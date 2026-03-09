@@ -30,12 +30,18 @@ public interface FriendRequestRepository extends JpaRepository<FriendRequest, UU
   Slice<UserProfileShort> findAllIncomingShort(@Param("userId") UUID userId, @Param("status") RequestStatus status, Pageable pageable);
 
   @Query("""
-      SELECT new com._labor.fakecord.domain.dto.UserProfileShort(
-        p.id, p.displayName, p.avatarUrl, p.statusPreference
-      )
-      FROM UserProfile p
-      JOIN FriendRequest fr ON p.user.id = fr.target.id
-      WHERE fr.sender.id = :userId AND fr.status = :status
+    SELECT new com._labor.fakecord.domain.dto.UserProfileShort(
+      p.id, p.displayName, p.avatarUrl, p.statusPreference
+    )
+    FROM UserProfile p
+    JOIN FriendRequest fr ON p.user.id = fr.target.id
+    WHERE fr.sender.id = :userId AND fr.status = :status
   """)
   Slice<UserProfileShort> findAllOutgoingShort(@Param("userId") UUID userId, @Param("status") RequestStatus status, Pageable pageable);
+  
+  @Query("SELECT COUNT(fr) FROM FriendRequest fr WHERE fr.target.id = :userId AND fr.status = 'PENDING'")
+  long countIncomingRequests(UUID userId);
+
+  @Query("SELECT COUNT(fr) FROM FriendRequest fr WHERE fr.sender.id = :userId AND fr.status = 'PENDING'")
+  long countOutgoingRequests(UUID userId);
 }
