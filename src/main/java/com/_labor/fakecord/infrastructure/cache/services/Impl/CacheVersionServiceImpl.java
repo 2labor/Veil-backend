@@ -25,8 +25,9 @@ public class CacheVersionServiceImpl implements CacheVersionService {
   }
 
   @Override
-  public void incrementVersion(UUID userId) {
-    redisTemplate.opsForValue().increment(VERSION_PREFIX + userId);
+  public long incrementVersion(UUID userId) {
+    Long newVersion = redisTemplate.opsForValue().increment(VERSION_PREFIX + userId);
+    return (newVersion == null) ? 0 : newVersion;
   }
   
 }

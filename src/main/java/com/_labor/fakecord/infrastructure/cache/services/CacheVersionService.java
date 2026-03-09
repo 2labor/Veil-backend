@@ -4,5 +4,5 @@ import java.util.UUID;
 
 public interface CacheVersionService {
   long getVersion(UUID userId);
-  void incrementVersion(UUID userId);
+  long incrementVersion(UUID userId);
 }
