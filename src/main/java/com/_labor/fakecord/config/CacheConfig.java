@@ -1,6 +1,5 @@
 package com._labor.fakecord.config;
 
-import java.util.concurrent.TimeUnit;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,13 +12,13 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 @Configuration
 public class CacheConfig {
 
-  @Bean
-  public Cache<String, CachedSlice<UserProfileShort>> localCache() {
-    return Caffeine.newBuilder()
-        .initialCapacity(100)
-        .maximumSize(5000)
-        .expireAfterWrite(10, TimeUnit.MINUTES)
-        .recordStats()
-        .build();
+  @Bean(name = "sliceCache")
+  public Cache<String, CachedSlice<UserProfileShort>> sliceCache() {
+    return Caffeine.newBuilder().maximumSize(5000).build();
+  }
+
+  @Bean(name = "counterCache")
+  public Cache<String, Long> counterCache() {
+    return Caffeine.newBuilder().maximumSize(1000).build();
   }
 }

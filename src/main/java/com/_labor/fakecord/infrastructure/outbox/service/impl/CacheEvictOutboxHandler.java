@@ -10,6 +10,7 @@ import com._labor.fakecord.infrastructure.outbox.domain.CacheEvictEvent;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEvent;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
 import com._labor.fakecord.infrastructure.outbox.domain.RelationshipActionPayload;
+import com._labor.fakecord.infrastructure.outbox.domain.enums.CacheSubType;
 import com._labor.fakecord.infrastructure.outbox.service.OutboxHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -24,36 +25,53 @@ public class CacheEvictOutboxHandler implements OutboxHandler {
   private final RedisEventPublisher eventPublisher;
   private final ObjectMapper objectMapper;
   private static final Set<OutboxEventType> EVICT_TYPES = Set.of(
+    OutboxEventType.SOCIAL_FRIEND_REQUEST_SENT,
+    OutboxEventType.SOCIAL_FRIEND_REQUEST_DECLINED,
+    OutboxEventType.SOCIAL_FRIEND_REQUEST_ACCEPTED,
+    OutboxEventType.SOCIAL_FRIEND_REQUEST_CANCELLED,
+    OutboxEventType.SOCIAL_FRIEND_REQUEST_IGNORED,
     OutboxEventType.SOCIAL_FRIENDSHIP_CREATED,
-    OutboxEventType.SOCIAL_FRIENDSHIP_TERMINATED,
-    OutboxEventType.SOCIAL_USER_BLOCKED,
-    OutboxEventType.SOCIAL_USER_UNBLOCKED
+    OutboxEventType.SOCIAL_FRIENDSHIP_TERMINATED
   ); 
 
   @Override
   public boolean supports(OutboxEventType type) {
     return EVICT_TYPES.contains(type);
   }
-
+  
   @Override
-public void handle(OutboxEvent event) {
-    eventPublisher.publish(new CacheEvictEvent(
-        event.getAggregateId(), "friends", System.currentTimeMillis()
-    ));
+  public void handle(OutboxEvent event) {
+    log.info("Processing outbox event type: {} for aggregate: {}", event.getType(), event.getAggregateId());
 
     try {
         RelationshipActionPayload payload = objectMapper.readValue(
             event.getPayload(), RelationshipActionPayload.class
         );
-        UUID other = payload.targetId().equals(event.getAggregateId())
-            ? payload.actorId()
-            : payload.targetId();
-        eventPublisher.publish(new CacheEvictEvent(
-            other, "friends", System.currentTimeMillis()
-        ));
+
+        
+        UUID actorId  = payload.actorId();
+        UUID targetId  = payload.targetId();
+
+        log.debug("Evicting caches for actor: {} and target: {}", actorId, targetId);
+
+        evictAllCaches(actorId);
+        evictAllCaches(targetId);
+
+        log.info("Successfully published eviction events for friendship action: {}", event.getType());
+        
     } catch (Exception e) {
-        log.warn("Could not parse payload for dual evict: {}", e.getMessage());
+        log.error("Error processing outbox event {}: {}", event.getId(), e.getMessage(), e);
     }
   }
 
+  private void evictAllCaches(UUID userId) {
+    
+    eventPublisher.publish(new CacheEvictEvent(userId, "friends", CacheSubType.NONE, System.currentTimeMillis()));
+    
+    eventPublisher.publish(new CacheEvictEvent(userId, "request-list", CacheSubType.INCOMING_LIST, System.currentTimeMillis()));
+    eventPublisher.publish(new CacheEvictEvent(userId, "request-list", CacheSubType.OUTGOING_LIST, System.currentTimeMillis()));
+    
+    eventPublisher.publish(new CacheEvictEvent(userId, "request-counter", CacheSubType.INCOMING_COUNTER, System.currentTimeMillis()));
+    eventPublisher.publish(new CacheEvictEvent(userId, "request-counter", CacheSubType.OUTGOING_COUNTER, System.currentTimeMillis()));
+  }
 }

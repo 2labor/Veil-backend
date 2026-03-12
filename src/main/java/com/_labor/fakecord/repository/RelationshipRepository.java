@@ -52,4 +52,10 @@ public interface RelationshipRepository extends JpaRepository<Relationships, UUI
       AND r2.status = com._labor.fakecord.domain.enums.RelationshipStatus.FRIENDS
   """)
   long countMutualFriends(@Param("userA") UUID userA, @Param("userB") UUID userB);
+
+  @Query("SELECT COUNT(r) > 0 FROM Relationships r WHERE " +
+    "((r.user.id = :userA AND r.target.id = :userB) OR " +
+    "(r.user.id = :userB AND r.target.id = :userA)) AND " +
+    "r.status = :status")
+  boolean existsByUsersAndStatus(UUID userA, UUID userB, RelationshipStatus status);
 }

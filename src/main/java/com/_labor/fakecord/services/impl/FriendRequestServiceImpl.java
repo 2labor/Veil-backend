@@ -47,12 +47,12 @@ public class FriendRequestServiceImpl implements FriendRequestCommandService, Fr
 
     RelationshipStatus status = relationshipQueryService.getRelationshipStatus(senderId, targetId);
 
-    if (status == RelationshipStatus.BLOCKED) {
-      throw new RuntimeException("User is blocked");
-    }
-
     if (status == RelationshipStatus.FRIENDS) {
       throw  new RuntimeException("Already friends");
+    }
+
+    if (relationshipQueryService.isBlocked(targetId, senderId)) {
+      throw new RuntimeException("You cannot send request to user who blocked you");
     }
 
     repository.findBySenderIdAndTargetId(senderId, targetId)
@@ -60,19 +60,20 @@ public class FriendRequestServiceImpl implements FriendRequestCommandService, Fr
         throw new RuntimeException("Request already pending");
     });
 
-    FriendRequest request = new FriendRequest();
-    request.setSender(userRepository.getReferenceById(senderId));
-    request.setTarget(userRepository.getReferenceById(targetId));
-    request.setSource(source);
-    request.setStatus(RequestStatus.PENDING);
-
-    repository.save(request);
-
-    outboxService.publish(
-      senderId, 
-      OutboxEventType.SOCIAL_FRIEND_REQUEST_SENT,
-      new FriendRequestPayload(senderId, targetId, source.name())
-    );
+   repository.findBySenderIdAndTargetId(targetId, senderId).ifPresentOrElse(existingRequest -> {
+        relationshipCommandService.createFriendship(senderId, targetId);
+        repository.delete(existingRequest);
+        log.info("Mutual request detected, friendship created between {} and {}", senderId, targetId);
+    }, () -> {
+        FriendRequest request = new FriendRequest();
+        request.setSender(userRepository.getReferenceById(senderId));
+        request.setTarget(userRepository.getReferenceById(targetId));
+        request.setSource(source);
+        request.setStatus(RequestStatus.PENDING);
+        repository.save(request);
+        
+        outboxService.publish(senderId, OutboxEventType.SOCIAL_FRIEND_REQUEST_SENT, new RelationshipActionPayload(senderId, targetId));
+    });
     log.info("Friend request sent from {} to {}", senderId, targetId);
   }
 
@@ -86,12 +87,6 @@ public class FriendRequestServiceImpl implements FriendRequestCommandService, Fr
     relationshipCommandService.createFriendship(requesterId, currentUser);
 
     repository.delete(request);
-
-    outboxService.publish(
-      currentUser, 
-      OutboxEventType.SOCIAL_FRIEND_REQUEST_ACCEPTED, 
-      new FriendAcceptedPayload(currentUser, requesterId)
-    );
 
     log.info("User {} accepted friend request from {}", currentUser, requesterId);
   }
@@ -107,7 +102,7 @@ public class FriendRequestServiceImpl implements FriendRequestCommandService, Fr
 
         outboxService.publish(
           senderId, 
-          type,
+          type, 
           new RelationshipActionPayload(senderId, targetId)
         );
 

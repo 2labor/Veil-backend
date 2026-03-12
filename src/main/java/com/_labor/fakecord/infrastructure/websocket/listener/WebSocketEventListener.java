@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
-import com._labor.fakecord.services.UserStatusService;
 import com._labor.fakecord.services.impl.PresenceService;
 
 import lombok.extern.slf4j.Slf4j;

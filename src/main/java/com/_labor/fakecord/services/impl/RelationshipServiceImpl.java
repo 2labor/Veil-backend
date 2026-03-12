@@ -59,9 +59,9 @@ public class RelationshipServiceImpl implements RelationshipCommandService, Rela
     repository.saveAll(List.of(r1, r2));
 
     outboxService.publish(
-      userA, 
-      OutboxEventType.SOCIAL_FRIENDSHIP_CREATED, 
-      new RelationshipActionPayload(userA, userB)
+        userA, 
+        OutboxEventType.SOCIAL_FRIENDSHIP_CREATED, 
+        new RelationshipActionPayload(userA, userB)
     );
 
     log.info("Friendship established between {} and {}", userA, userB);
@@ -156,4 +156,9 @@ public class RelationshipServiceImpl implements RelationshipCommandService, Rela
   public long getMutualFriendsCount(UUID userA, UUID userB) {
     return repository.countMutualFriends(userA, userB);
   }  
+
+  @Override
+  public boolean isBlocked(UUID senderId, UUID targetId) {
+    return repository.existsByUsersAndStatus(senderId, targetId, RelationshipStatus.BLOCKED);
+  }
 }

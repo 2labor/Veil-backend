@@ -91,5 +91,10 @@ public class CachedRelationshipServiceImpl implements RelationshipQueryService {
   public long getMutualFriendsCount(UUID userA, UUID userB) {
     return delegate.getMutualFriendsCount(userA, userB);
   }
+
+  @Override
+  public boolean isBlocked(UUID senderId, UUID targetId) {
+    return delegate.isBlocked(senderId, targetId);
+  }
   
 }

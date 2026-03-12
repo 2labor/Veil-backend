@@ -15,4 +15,5 @@ public interface RelationshipQueryService {
   RelationshipStatus getRelationshipStatus(UUID userA, UUID userB);
   List<UserProfileShort> getMutualFriends(UUID userA, UUID userB);
   long getMutualFriendsCount(UUID userA, UUID userB);
+  boolean isBlocked(UUID senderId, UUID targetId);
 }
