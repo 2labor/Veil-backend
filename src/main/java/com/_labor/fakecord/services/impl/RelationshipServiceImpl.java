@@ -6,21 +6,19 @@ import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.domain.entity.Relationships;
 import com._labor.fakecord.domain.enums.RelationshipStatus;
+import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
+import com._labor.fakecord.infrastructure.outbox.domain.RelationshipActionPayload;
+import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com._labor.fakecord.repository.FriendRequestRepository;
 import com._labor.fakecord.repository.RelationshipRepository;
 import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.services.RelationshipCommandService;
 import com._labor.fakecord.services.RelationshipQueryService;
-
-import org.springframework.transaction.annotation.Transactional;
-
-import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
-import com._labor.fakecord.infrastructure.outbox.domain.RelationshipActionPayload;
-import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -159,6 +157,8 @@ public class RelationshipServiceImpl implements RelationshipCommandService, Rela
 
   @Override
   public boolean isBlocked(UUID senderId, UUID targetId) {
-    return repository.existsByUsersAndStatus(senderId, targetId, RelationshipStatus.BLOCKED);
+    return repository.findByUserIdAndTargetId(senderId, targetId)
+      .map(r -> r.getStatus() == RelationshipStatus.BLOCKED)
+      .orElse(false);
   }
 }
