@@ -11,7 +11,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -42,27 +41,6 @@ public class RelationshipController {
     return ResponseEntity.noContent().build();
   }
 
-  @PostMapping("/block/{targetId}")
-  public ResponseEntity<Void> blockUser(
-    @AuthenticationPrincipal UserDetails userDetails,
-    @PathVariable UUID targetId
-  ) {
-    UUID userId = getUserId(userDetails);
-    relationshipCommandService.blockUser(userId, targetId);
-    return ResponseEntity.ok().build();
-  }
-
-  @DeleteMapping("/block/{targetId}")
-  public ResponseEntity<Void> unblockUser(
-    @AuthenticationPrincipal UserDetails userDetails,
-    @PathVariable UUID targetId
-  ) {
-    UUID userId = getUserId(userDetails);
-
-    relationshipCommandService.unblockUser(userId, targetId);
-    return ResponseEntity.noContent().build();
-  }
-
   @GetMapping("/friends")
   public ResponseEntity<Slice<UserProfileShort>> getFriends(
     @AuthenticationPrincipal UserDetails userDetails,
@@ -70,16 +48,6 @@ public class RelationshipController {
   ) {
     UUID userId = getUserId(userDetails);
     return ResponseEntity.ok(relationshipQueryService.getFriendsList(userId, pageable));
-  }
-
-  @GetMapping("/blocked")
-  public ResponseEntity<Slice<UserProfileShort>> getBlockedUsers(
-    @AuthenticationPrincipal UserDetails userDetails,
-    Pageable pageable
-  ) {
-    UUID userId = getUserId(userDetails);
-
-    return ResponseEntity.ok(relationshipQueryService.getBlockedUsers(userId, pageable));
   }
 
   @GetMapping("/status/{targetId}")

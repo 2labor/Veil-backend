@@ -23,6 +23,7 @@ import com._labor.fakecord.services.FriendRequestCommandService;
 import com._labor.fakecord.services.FriendRequestQueryService;
 import com._labor.fakecord.services.RelationshipCommandService;
 import com._labor.fakecord.services.RelationshipQueryService;
+import com._labor.fakecord.services.UserBlockService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ public class FriendRequestServiceImpl implements FriendRequestCommandService, Fr
   private final RelationshipQueryService relationshipQueryService;
   private final UserRepository userRepository;
   private final OutboxService outboxService;
+  private final UserBlockService blockServices;
 
   @Override
   @Transactional
@@ -51,8 +53,12 @@ public class FriendRequestServiceImpl implements FriendRequestCommandService, Fr
       throw  new RuntimeException("Already friends");
     }
 
-    if (relationshipQueryService.isBlocked(targetId, senderId)) {
+    if (blockServices.isBlocked(targetId, senderId)) {
       throw new RuntimeException("You cannot send request to user who blocked you");
+    }
+
+    if (blockServices.isBlocked(senderId, targetId)) {
+      throw new RuntimeException("You must unblock the user before sending a request");
     }
 
     repository.findBySenderIdAndTargetId(senderId, targetId)

@@ -17,6 +17,7 @@ import com._labor.fakecord.domain.enums.RelationshipStatus;
 import com._labor.fakecord.infrastructure.cache.Dto.CachedSlice;
 import com._labor.fakecord.infrastructure.cache.services.CacheVersionService;
 import com._labor.fakecord.services.RelationshipQueryService;
+import com._labor.fakecord.services.UserBlockService;
 import com._labor.fakecord.services.impl.RelationshipServiceImpl;
 import com.github.benmanes.caffeine.cache.Cache;
 
@@ -71,11 +72,6 @@ public class CachedRelationshipServiceImpl implements RelationshipQueryService {
   private Slice<UserProfileShort> convertToSlice(CachedSlice<UserProfileShort> dto, Pageable pageable) {
     return new SliceImpl<>(dto.content(), pageable, dto.hasNext());
   }
-  
-  @Override
-  public Slice<UserProfileShort> getBlockedUsers(UUID userId, Pageable pageable) {
-    return delegate.getBlockedUsers(userId, pageable);
-  }
 
   @Override
   public RelationshipStatus getRelationshipStatus(UUID userA, UUID userB) {
@@ -92,9 +88,4 @@ public class CachedRelationshipServiceImpl implements RelationshipQueryService {
     return delegate.getMutualFriendsCount(userA, userB);
   }
 
-  @Override
-  public boolean isBlocked(UUID senderId, UUID targetId) {
-    return delegate.isBlocked(senderId, targetId);
-  }
-  
 }

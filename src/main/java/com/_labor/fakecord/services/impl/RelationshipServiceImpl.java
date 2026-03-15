@@ -79,63 +79,6 @@ public class RelationshipServiceImpl implements RelationshipCommandService, Rela
   }
 
   @Override
-  @Transactional
-  public void blockUser(UUID senderId, UUID targetId) {
-    if (senderId.equals(targetId)) {
-      throw new IllegalArgumentException("You cannot block yourself");
-    }
-
-    repository.deleteByUserIdAndTargetIdOrUserIdAndTargetId(senderId, targetId, targetId, senderId);
-
-    friendRequestRepository.findBySenderIdAndTargetId(senderId, targetId).ifPresent(friendRequestRepository::delete);
-    friendRequestRepository.findBySenderIdAndTargetId(targetId, senderId).ifPresent(friendRequestRepository::delete);
-
-    Relationships block = repository.findByUserIdAndTargetId(senderId, targetId)
-      .orElse(new Relationships());
-
-    block.setUser(userRepository.getReferenceById(senderId));
-    block.setTarget(userRepository.getReferenceById(targetId));
-    block.setStatus(RelationshipStatus.BLOCKED);
-
-    repository.save(block);
-
-    outboxService.publish(
-      senderId, 
-      OutboxEventType.SOCIAL_USER_BLOCKED, 
-      new RelationshipActionPayload(senderId, targetId)
-    );
-    log.info("User {} blocked {}", senderId, targetId);
-  }
-
-  @Override
-  @Transactional
-  public void unblockUser(UUID senderId, UUID targetId) {
-    repository.findByUserIdAndTargetId(senderId, targetId)
-      .filter(r -> r.getStatus() == RelationshipStatus.BLOCKED)
-      .ifPresent(repository::delete);
-
-    outboxService.publish(
-      senderId, 
-      OutboxEventType.SOCIAL_USER_UNBLOCKED,
-      new RelationshipActionPayload(senderId, targetId)
-    );
-
-    log.info("User {} unblocked {}", senderId, targetId);
-  }
-
-  @Override
-  @Transactional(readOnly = true)
-  public Slice<UserProfileShort> getFriendsList(UUID userId, Pageable pageable) {
-    return repository.findAllFriendsShort(userId, RelationshipStatus.FRIENDS, pageable);
-  }
-
-  @Override
-  @Transactional(readOnly = true)
-  public Slice<UserProfileShort> getBlockedUsers(UUID userId, Pageable pageable) {
-    return repository.findAllFriendsShort(userId, RelationshipStatus.BLOCKED, pageable);
-  }
-
-  @Override
   @Transactional(readOnly = true)
   public RelationshipStatus getRelationshipStatus(UUID userA, UUID userB) {
     return repository.findByUserIdAndTargetId(userA, userB)
@@ -156,9 +99,14 @@ public class RelationshipServiceImpl implements RelationshipCommandService, Rela
   }  
 
   @Override
-  public boolean isBlocked(UUID senderId, UUID targetId) {
-    return repository.findByUserIdAndTargetId(senderId, targetId)
-      .map(r -> r.getStatus() == RelationshipStatus.BLOCKED)
-      .orElse(false);
+  public void forceTerminateRelationships(UUID userA, UUID userB) {
+    repository.deleteByUserIdAndTargetIdOrUserIdAndTargetId(userA, userB, userB, userA);
   }
+
+  @Override
+  public Slice<UserProfileShort> getFriendsList(UUID userId, Pageable pageable) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'getFriendsList'");
+  }
+
 }
