@@ -1,5 +1,8 @@
 package com._labor.fakecord.domain.enums;
 
 public enum RelationshipStatus {
-  FRIENDS
+  FRIENDS,
+  PENDING,
+  BLOCKED, 
+  NONE
 }

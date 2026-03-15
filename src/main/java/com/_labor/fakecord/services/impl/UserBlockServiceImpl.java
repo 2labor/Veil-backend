@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.domain.entity.User;
 import com._labor.fakecord.domain.entity.UserBlock;
+import com._labor.fakecord.domain.events.UserBlockedEvent;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
 import com._labor.fakecord.infrastructure.outbox.domain.RelationshipActionPayload;
 import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
@@ -30,9 +32,8 @@ import lombok.extern.slf4j.Slf4j;
 public class UserBlockServiceImpl implements  UserBlockService{
 
   private final UserBlockRepository repository;
-  private final RelationshipCommandService relationshipService;
-  private final FriendRequestCommandService requestService;
   private final OutboxService outboxService;
+  private final ApplicationEventPublisher eventPublisher;
   private final UserRepository userRepository;
 
   @Override
@@ -51,9 +52,7 @@ public class UserBlockServiceImpl implements  UserBlockService{
     }
 
     try {
-      relationshipService.removeFriend(actorId, targetId);
-      requestService.declineOrCancelRequest(targetId, actorId);
-      requestService.declineOrCancelRequest(actorId, targetId);
+      eventPublisher.publishEvent(new UserBlockedEvent(actorId, targetId));
 
       UserBlock block = new UserBlock();
       block.setUser(new User(actorId));

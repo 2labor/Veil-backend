@@ -19,6 +19,7 @@ import com._labor.fakecord.repository.RelationshipRepository;
 import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.services.RelationshipCommandService;
 import com._labor.fakecord.services.RelationshipQueryService;
+import com._labor.fakecord.services.UserBlockService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,7 @@ public class RelationshipServiceImpl implements RelationshipCommandService, Rela
   private final RelationshipRepository repository;
   private final UserRepository userRepository;
   private final FriendRequestRepository friendRequestRepository;
+  private final UserBlockService blockService;
   private final OutboxService outboxService;
 
   @Override
@@ -81,9 +83,13 @@ public class RelationshipServiceImpl implements RelationshipCommandService, Rela
   @Override
   @Transactional(readOnly = true)
   public RelationshipStatus getRelationshipStatus(UUID userA, UUID userB) {
-    return repository.findByUserIdAndTargetId(userA, userB)
+    if (blockService.isBlocked(userA, userB)) {
+      return RelationshipStatus.BLOCKED;
+    }
+
+    return repository.findByUserIdAndTargetId(userB, userB)
       .map(Relationships::getStatus)
-      .orElse(null);
+      .orElse(RelationshipStatus.NONE);
   }
 
   @Override
@@ -103,10 +109,10 @@ public class RelationshipServiceImpl implements RelationshipCommandService, Rela
     repository.deleteByUserIdAndTargetIdOrUserIdAndTargetId(userA, userB, userB, userA);
   }
 
-  @Override
-  public Slice<UserProfileShort> getFriendsList(UUID userId, Pageable pageable) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'getFriendsList'");
-  }
 
+  @Override
+  @Transactional(readOnly = true)
+  public Slice<UserProfileShort> getFriendsList(UUID userId, Pageable pageable) {
+    return repository.findAllFriendsShort(userId, RelationshipStatus.FRIENDS, pageable);
+  }
 }
