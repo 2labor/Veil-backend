@@ -3,7 +3,6 @@ package com._labor.fakecord.infrastructure.outbox.service.impl;
 import java.util.Set;
 import java.util.UUID;
 
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Component;
 
 import com._labor.fakecord.infrastructure.outbox.domain.CacheEvictEvent;
@@ -44,34 +43,28 @@ public class CacheEvictOutboxHandler implements OutboxHandler {
     log.info("Processing outbox event type: {} for aggregate: {}", event.getType(), event.getAggregateId());
 
     try {
-        RelationshipActionPayload payload = objectMapper.readValue(
-            event.getPayload(), RelationshipActionPayload.class
-        );
+      RelationshipActionPayload payload = objectMapper.readValue(
+        event.getPayload(), RelationshipActionPayload.class
+      );
 
-        
-        UUID actorId  = payload.actorId();
-        UUID targetId  = payload.targetId();
+      
+      UUID actorId  = payload.actorId();
+      UUID targetId  = payload.targetId();
 
-        log.debug("Evicting caches for actor: {} and target: {}", actorId, targetId);
+      log.debug("Evicting caches for actor: {} and target: {}", actorId, targetId);
 
-        evictAllCaches(actorId);
-        evictAllCaches(targetId);
 
-        log.info("Successfully published eviction events for friendship action: {}", event.getType());
-        
+      evictAllCaches(actorId);
+      evictAllCaches(targetId);
+
+      log.info("Successfully published eviction events for friendship action: {}", event.getType());
+      
     } catch (Exception e) {
         log.error("Error processing outbox event {}: {}", event.getId(), e.getMessage(), e);
     }
   }
 
   private void evictAllCaches(UUID userId) {
-    
-    eventPublisher.publish(new CacheEvictEvent(userId, "friends", CacheSubType.NONE, System.currentTimeMillis()));
-    
-    eventPublisher.publish(new CacheEvictEvent(userId, "request-list", CacheSubType.INCOMING_LIST, System.currentTimeMillis()));
-    eventPublisher.publish(new CacheEvictEvent(userId, "request-list", CacheSubType.OUTGOING_LIST, System.currentTimeMillis()));
-    
-    eventPublisher.publish(new CacheEvictEvent(userId, "request-counter", CacheSubType.INCOMING_COUNTER, System.currentTimeMillis()));
-    eventPublisher.publish(new CacheEvictEvent(userId, "request-counter", CacheSubType.OUTGOING_COUNTER, System.currentTimeMillis()));
+    eventPublisher.publish(new CacheEvictEvent(userId, "all", CacheSubType.ALL, System.currentTimeMillis()));
   }
 }

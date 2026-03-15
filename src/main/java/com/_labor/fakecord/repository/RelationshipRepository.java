@@ -32,12 +32,16 @@ public interface RelationshipRepository extends JpaRepository<Relationships, UUI
   Slice<UserProfileShort> findAllFriendsShort(@Param("userId") UUID userId, @Param("status") RelationshipStatus status, Pageable pageable);
   
   @Query("""
-  SELECT new com._labor.fakecord.domain.dto.UserProfileShort(
-    p.id, p.displayName, p.avatarUrl, null
-  )
-  FROM UserProfile p
-  JOIN Relationships r ON p.id = r.target.id
-  WHERE r.user.id = :userId AND r.status = :status
+    SELECT new com._labor.fakecord.domain.dto.UserProfileShort(
+      p.id, p.displayName, p.avatarUrl, null
+    )
+    FROM UserProfile p
+    JOIN Relationships r1 ON p.id = r1.target.id
+    JOIN Relationships r2 ON p.id = r2.target.id
+    WHERE r1.user.id = :userA
+      AND r2.user.id = :userB
+      AND r1.status = com._labor.fakecord.domain.enums.RelationshipStatus.FRIENDS
+      AND r2.status = com._labor.fakecord.domain.enums.RelationshipStatus.FRIENDS
   """)
   List<UserProfileShort> findMutualFriends(@Param("userA") UUID userA, @Param("userB") UUID userB);
 

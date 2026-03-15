@@ -11,9 +11,7 @@ import com._labor.fakecord.domain.enums.RelationshipStatus;
 
 public interface RelationshipQueryService {
   Slice<UserProfileShort> getFriendsList(UUID userId, Pageable pageable);
-  Slice<UserProfileShort> getBlockedUsers(UUID userId, Pageable pageable);
   RelationshipStatus getRelationshipStatus(UUID userA, UUID userB);
   List<UserProfileShort> getMutualFriends(UUID userA, UUID userB);
   long getMutualFriendsCount(UUID userA, UUID userB);
-  boolean isBlocked(UUID senderId, UUID targetId);
 }

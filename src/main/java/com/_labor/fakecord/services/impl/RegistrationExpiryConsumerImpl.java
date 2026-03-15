@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import com._labor.fakecord.config.RabbitMQConfig;
 import com._labor.fakecord.domain.entity.EmailIdentity;
 import com._labor.fakecord.repository.EmailIdentityRepository;
-import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.services.RegistrationExpiryConsumer;
 import com._labor.fakecord.services.UserCleanupService;
 import com.fasterxml.jackson.databind.JsonNode;
