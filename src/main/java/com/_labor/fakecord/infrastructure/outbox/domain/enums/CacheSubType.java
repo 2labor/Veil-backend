@@ -6,6 +6,8 @@ public enum CacheSubType {
   OUTGOING_LIST("outgoing_list"),
   INCOMING_COUNTER("incoming_counter"),
   OUTGOING_COUNTER("outgoing_counter"),
+  BLOCK_LIST("block_list"),
+  BLOCK("block"),
   ALL("all");
 
   private String name;
