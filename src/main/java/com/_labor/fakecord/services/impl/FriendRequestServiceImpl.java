@@ -99,22 +99,24 @@ public class FriendRequestServiceImpl implements FriendRequestCommandService, Fr
 
   @Override
   @Transactional
-  public void declineOrCancelRequest(UUID senderId, UUID targetId) {
-    repository.findBySenderIdAndTargetId(senderId, targetId)
-      .ifPresent(r -> {
-        OutboxEventType type = r.getSender().getId().equals(targetId) 
-          ? OutboxEventType.SOCIAL_FRIEND_REQUEST_DECLINED
-          : OutboxEventType.SOCIAL_FRIEND_REQUEST_CANCELLED;
+  public void declineOrCancelRequest(UUID actorId, UUID otherId) {
+    FriendRequest request = repository.findBySenderIdAndTargetId(actorId, otherId)
+      .or(() -> repository.findBySenderIdAndTargetId(otherId, actorId))
+      .orElseThrow(() -> new RuntimeException("Request not found"));
 
-        outboxService.publish(
-          senderId, 
-          type, 
-          new RelationshipActionPayload(senderId, targetId)
-        );
+    UUID senderId = request.getSender().getId();
+    UUID targetId = request.getTarget().getId();
 
-        repository.delete(r);
-      });
-    log.info("Request between {} and {} was cancelled/declined", senderId, targetId);
+      
+    OutboxEventType type = actorId.equals(senderId) 
+      ? OutboxEventType.SOCIAL_FRIEND_REQUEST_CANCELLED 
+      : OutboxEventType.SOCIAL_FRIEND_REQUEST_DECLINED;
+
+    outboxService.publish(actorId, type, new RelationshipActionPayload(senderId, targetId));
+      
+    repository.delete(request);
+
+    log.info("Request between {} and {} was {} by {}", senderId, targetId, type, actorId);
   }
 
   @Override
