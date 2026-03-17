@@ -21,4 +21,9 @@ public class CacheConfig {
   public Cache<String, Long> counterCache() {
     return Caffeine.newBuilder().maximumSize(1000).build();
   }
+
+  @Bean(name = "localCache")
+  public Cache<String, Object> localCache() {
+    return Caffeine.newBuilder().maximumSize(1000).build();
+  }
 }

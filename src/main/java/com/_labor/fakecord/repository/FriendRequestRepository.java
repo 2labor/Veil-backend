@@ -7,12 +7,15 @@ import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.domain.entity.FriendRequest;
 import com._labor.fakecord.domain.enums.RequestStatus;
+
+import jakarta.transaction.Transactional;
 
 public interface FriendRequestRepository extends JpaRepository<FriendRequest, UUID>{
   Optional<FriendRequest> findBySenderIdAndTargetId(UUID userId, UUID targetId);
@@ -44,4 +47,13 @@ public interface FriendRequestRepository extends JpaRepository<FriendRequest, UU
 
   @Query("SELECT COUNT(fr) FROM FriendRequest fr WHERE fr.sender.id = :userId AND fr.status = 'PENDING'")
   long countOutgoingRequests(UUID userId);
+
+  @Modifying
+  @Transactional
+  @Query("""
+    DELETE FROM FriendRequest r 
+    WHERE (r.sender.id = :userA AND r.target.id = :userB) 
+      OR (r.sender.id = :userB AND r.target.id = :userA)
+  """)
+  void deleteBetweenUsers(@Param("userA") UUID userA, @Param("userB") UUID userB);
 }

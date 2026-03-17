@@ -87,9 +87,17 @@ public class RelationshipServiceImpl implements RelationshipCommandService, Rela
       return RelationshipStatus.BLOCKED;
     }
 
-    return repository.findByUserIdAndTargetId(userB, userB)
-      .map(Relationships::getStatus)
-      .orElse(RelationshipStatus.NONE);
+    var relationship = repository.findByUserIdAndTargetId(userA, userB);
+    if (relationship.isPresent()) {
+      return relationship.get().getStatus();
+    }
+
+    boolean hasRequest = friendRequestRepository.findBySenderIdAndTargetId(userA, userB).isPresent() || friendRequestRepository.findBySenderIdAndTargetId(userB, userA).isPresent();
+    if (hasRequest) {
+      return RelationshipStatus.PENDING;
+    }
+
+    return RelationshipStatus.NONE;
   }
 
   @Override
