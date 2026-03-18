@@ -24,7 +24,13 @@ public interface FriendRequestRepository extends JpaRepository<FriendRequest, UU
 
   @Query("""
     SELECT new com._labor.fakecord.domain.dto.UserProfileShort(
-      p.id, p.displayName, p.avatarUrl, p.statusPreference
+      p.id, 
+      p.displayName, 
+      p.handle, 
+      p.discriminator, 
+      p.globalId, 
+      p.avatarUrl, 
+      p.statusPreference
     )
     FROM UserProfile p
     JOIN FriendRequest fr ON p.user.id = fr.sender.id
@@ -34,7 +40,13 @@ public interface FriendRequestRepository extends JpaRepository<FriendRequest, UU
 
   @Query("""
     SELECT new com._labor.fakecord.domain.dto.UserProfileShort(
-      p.id, p.displayName, p.avatarUrl, p.statusPreference
+      p.id, 
+      p.displayName, 
+      p.handle, 
+      p.discriminator, 
+      p.globalId, 
+      p.avatarUrl, 
+      p.statusPreference
     )
     FROM UserProfile p
     JOIN FriendRequest fr ON p.user.id = fr.target.id

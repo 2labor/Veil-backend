@@ -2,11 +2,15 @@ package com._labor.fakecord.infrastructure.outbox.service.impl;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import com._labor.fakecord.infrastructure.outbox.domain.EventStatus;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEvent;
+import com._labor.fakecord.infrastructure.outbox.domain.OutboxTickEvent;
 import com._labor.fakecord.infrastructure.outbox.repository.OutboxRepository;
 import com._labor.fakecord.infrastructure.outbox.service.OutboxHandler;
 import com._labor.fakecord.infrastructure.outbox.service.OutboxRelay;
@@ -23,7 +27,14 @@ public class OutboxRelayImpl implements OutboxRelay {
   
   private final OutboxRepository repository;
   private final List<OutboxHandler> handlers;
-  
+  private final AtomicBoolean isProcessing = new AtomicBoolean(false); 
+
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  public void onOutboxTick(OutboxTickEvent event) {
+    log.debug("Messaage received: Outbox record created. Triggering relay.");
+    internalProcess();
+  }
+
   @Override
   @Transactional
   public void processNextBatch() {
@@ -37,6 +48,25 @@ public class OutboxRelayImpl implements OutboxRelay {
 
     for (OutboxEvent event : events) {
       processEvent(event);
+    }
+  }
+
+  @Transactional
+  private void internalProcess() {
+    if (!isProcessing.compareAndSet(false, true)) {
+      return;
+    }
+
+    try {
+      List<OutboxEvent> events = repository.findTopPending();
+      if (events.isEmpty()) return;
+
+      log.info("Relaying batch of {} events via handlers", events.size());
+      for (OutboxEvent event : events) {
+        processEvent(event);
+      }
+    } finally {
+      isProcessing.set(false);
     }
   }
 

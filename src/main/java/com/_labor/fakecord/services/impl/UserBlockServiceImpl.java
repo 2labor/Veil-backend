@@ -1,7 +1,5 @@
 package com._labor.fakecord.services.impl;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -18,8 +16,6 @@ import com._labor.fakecord.infrastructure.outbox.domain.RelationshipActionPayloa
 import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com._labor.fakecord.repository.UserBlockRepository;
 import com._labor.fakecord.repository.UserRepository;
-import com._labor.fakecord.services.FriendRequestCommandService;
-import com._labor.fakecord.services.RelationshipCommandService;
 import com._labor.fakecord.services.UserBlockService;
 
 import jakarta.transaction.Transactional;

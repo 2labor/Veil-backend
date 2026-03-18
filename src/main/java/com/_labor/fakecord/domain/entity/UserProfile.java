@@ -21,6 +21,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -31,6 +33,9 @@ import lombok.Setter;
 @NoArgsConstructor
 @Getter
 @Setter
+@Table(name = "user_profiles", uniqueConstraints = {
+  @UniqueConstraint(name = "uk_handle_discriminator", columnNames = {"handle", "discriminator"})
+})
 public class UserProfile {
   @Id
   @Column(name = "user_id")
@@ -43,6 +48,18 @@ public class UserProfile {
 
   @Column(name = "user_name", nullable = false, length = 32)
   private String displayName;
+
+  @Column(name = "handle", nullable = false, length = 24)
+  private String handle;
+
+  @Column(name = "is_handle_set", nullable = false)
+  private boolean isHandleSet = false;
+
+  @Column(name = "discriminator", nullable = false, length = 4)
+  private String discriminator;
+
+  @Column(name = "global_id", nullable = false, updatable = false, insertable = false, unique = true, columnDefinition = "bigserial")
+  private Long globalId;
 
   @Column(name = "avatar_url", length = 2048)
   private String avatarUrl;
