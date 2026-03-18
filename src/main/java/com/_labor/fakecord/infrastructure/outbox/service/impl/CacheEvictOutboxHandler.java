@@ -64,8 +64,11 @@ public class CacheEvictOutboxHandler implements OutboxHandler {
       }
 
       case SOCIAL_FRIEND_REQUEST_ACCEPTED, SOCIAL_FRIENDSHIP_CREATED, SOCIAL_FRIENDSHIP_TERMINATED -> {
-        publish(actorId, CacheType.ALL, CacheSubType.ALL);
-        publish(targetId, CacheType.ALL, CacheSubType.ALL);
+        publish(actorId, CacheType.FRIENDS, CacheSubType.ALL);
+        publish(actorId, CacheType.REQUEST_COUNTER, CacheSubType.ALL);
+        
+        publish(targetId, CacheType.FRIENDS, CacheSubType.ALL);
+        publish(targetId, CacheType.REQUEST_COUNTER, CacheSubType.ALL);
       }
 
       case SOCIAL_FRIEND_REQUEST_DECLINED, SOCIAL_FRIEND_REQUEST_CANCELLED, SOCIAL_FRIEND_REQUEST_IGNORED-> {
@@ -77,7 +80,6 @@ public class CacheEvictOutboxHandler implements OutboxHandler {
 
       case SOCIAL_USER_BLOCKED -> {
         publish(actorId, CacheType.ALL, CacheSubType.ALL);
-        publish(actorId, CacheType.BLOCKS, CacheSubType.BLOCK_LIST);
         publish(targetId, CacheType.ALL, CacheSubType.ALL);
       }
 

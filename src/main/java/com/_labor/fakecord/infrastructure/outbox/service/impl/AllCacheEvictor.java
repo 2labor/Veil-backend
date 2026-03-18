@@ -27,11 +27,26 @@ public class AllCacheEvictor implements CacheEvictor {
 
   @Override
   public void evict(CacheEvictEvent event) {
-    log.info("Full social evict for user: {}", event.aggregateId());
+    log.info("Social eviction processing for user: {} (Cache: {})", event.aggregateId(), event.cacheName());
 
-    friendCache.evict(event);
-    requestsCache.evict(event);
-    blockCache.evict(event);
+    CacheType type = CacheType.fromString(event.cacheName());
+
+    switch (type) {
+      case FRIENDS -> {
+        requestsCache.evict(event);
+        friendCache.evict(event);
+      }
+
+      case BLOCKS -> {
+        blockCache.evict(event);
+      }
+      
+      default -> {
+        friendCache.evict(event);
+        requestsCache.evict(event);
+        blockCache.evict(event);
+      }
+    }
   }
   
 }
