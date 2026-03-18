@@ -12,6 +12,9 @@ import lombok.Builder;
 public record UserProfileFullDto(
   UUID userId,
   String displayName,
+  String handle,
+  String discriminator,
+  Long globalId,
   String bio,
   String avatarUrl,
   String bannerUrl,

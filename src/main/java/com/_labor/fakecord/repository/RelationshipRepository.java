@@ -22,18 +22,30 @@ public interface RelationshipRepository extends JpaRepository<Relationships, UUI
 
   @Query("""
     SELECT new com._labor.fakecord.domain.dto.UserProfileShort(
-      p.id, p.displayName, p.avatarUrl, p.statusPreference
+      p.id, 
+      p.displayName, 
+      p.handle, 
+      p.discriminator, 
+      p.globalId, 
+      p.avatarUrl, 
+      p.statusPreference
     )
     FROM UserProfile p
     JOIN Relationships r ON p.id = r.target.id
     WHERE r.user.id = :userId AND r.status = :status
     ORDER BY p.displayName ASC
-    """)
+  """)
   Slice<UserProfileShort> findAllFriendsShort(@Param("userId") UUID userId, @Param("status") RelationshipStatus status, Pageable pageable);
   
   @Query("""
     SELECT new com._labor.fakecord.domain.dto.UserProfileShort(
-      p.id, p.displayName, p.avatarUrl, null
+      p.id, 
+      p.displayName, 
+      p.handle, 
+      p.discriminator, 
+      p.globalId, 
+      p.avatarUrl, 
+      null
     )
     FROM UserProfile p
     JOIN Relationships r1 ON p.id = r1.target.id

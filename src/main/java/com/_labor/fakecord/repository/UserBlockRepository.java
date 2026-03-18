@@ -24,12 +24,15 @@ public interface UserBlockRepository extends JpaRepository<UserBlock, UUID> {
 
   @Query("""
     SELECT new com._labor.fakecord.domain.dto.UserProfileShort(
-        p.id, 
-        p.displayName, 
-        p.avatarUrl, 
-        p.statusPreference
+      p.id,
+      p.displayName,
+      p.handle,
+      p.discriminator,
+      p.globalId,
+      p.avatarUrl,
+      p.statusPreference
     )
-    FROM UserBlock ub 
+    FROM UserBlock ub
     JOIN ub.target t
     JOIN UserProfile p ON p.user.id = t.id
     WHERE ub.user.id = :userId
