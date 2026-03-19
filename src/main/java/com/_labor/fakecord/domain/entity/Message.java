@@ -1,0 +1,67 @@
+package com._labor.fakecord.domain.entity;
+
+import java.time.Instant;
+import java.util.Objects;
+import java.util.UUID;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Getter
+@Setter
+@Table(name = "messages", indexes = {
+  @Index(name = "idx_messages_channel_pagination", columnList = "channel_id, id DESC")
+})
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Message {
+  
+  @Id
+  private Long id;
+
+  @Column(name = "content")
+  private String content;
+
+  @Column(name = "channel_id", nullable = false)
+  private UUID channelId;
+
+  @Column(name = "author_id", nullable = false)
+  private UUID authorId;
+
+  @Column(name = "nonce", unique = true)
+  private String nonce;
+
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private Instant createdAt;
+
+  @Column(name = "updated_at")
+  private Instant updatedAt;
+
+  @Builder
+  public Message(Long id, UUID channelId, UUID authorId, String content, String nonce) {
+    Objects.requireNonNull(id, "ID (TSID) must be provided");
+    Objects.requireNonNull(channelId, "Channel ID is required");
+    Objects.requireNonNull(authorId, "Author ID is required");
+
+    this.id = id;
+    this.channelId = channelId;
+    this.authorId = authorId;
+    this.content = content;
+    this.nonce = nonce;
+
+    this.createdAt = Instant.now();
+    this.updatedAt = this.createdAt;
+  }
+
+   public void onUpdate() {
+    this.updatedAt = Instant.now();
+  }
+}
