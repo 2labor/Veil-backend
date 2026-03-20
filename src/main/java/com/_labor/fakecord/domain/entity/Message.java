@@ -31,7 +31,7 @@ public class Message {
   private String content;
 
   @Column(name = "channel_id", nullable = false)
-  private UUID channelId;
+  private Long channelId;
 
   @Column(name = "author_id", nullable = false)
   private UUID authorId;
@@ -46,7 +46,7 @@ public class Message {
   private Instant updatedAt;
 
   @Builder
-  public Message(Long id, UUID channelId, UUID authorId, String content, String nonce) {
+  public Message(Long id, Long channelId, UUID authorId, String content, String nonce) {
     Objects.requireNonNull(id, "ID (TSID) must be provided");
     Objects.requireNonNull(channelId, "Channel ID is required");
     Objects.requireNonNull(authorId, "Author ID is required");
