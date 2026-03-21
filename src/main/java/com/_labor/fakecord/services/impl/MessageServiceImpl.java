@@ -52,6 +52,31 @@ public class MessageServiceImpl implements MessageService{
     return repository.save(message);
   }
 
+  
+  @Override
+  public Message sendSystemMessage(Long channelId, UUID authorId, MessageType type, String metadata) {
+    log.info("Creating system message: type={}, channel={}, operator={}", type, channelId, authorId);
+
+    String systemNonce = String.format("sys:%s:%d:%s", type, channelId, metadata);
+
+    if (repository.existsByNonce(systemNonce)) {
+      log.warn("System message with nonce {} already exists. Skipping.", systemNonce);
+      return null;
+    }
+
+    Message systemMessage = Message.builder()
+      .id(idGenerator.nextId())
+      .channelId(channelId)
+      .channelId(channelId)
+      .authorId(authorId)
+      .type(type)
+      .content(metadata)
+      .nonce(systemNonce)
+      .build();
+    
+    return repository.save(systemMessage);
+  }
+
   @Override
   public Slice<Message> getLatestMessages(Long channelId, int size) {
     log.debug("Fetching latest {} messages for channel {}", size, channelId);
@@ -110,6 +135,5 @@ public class MessageServiceImpl implements MessageService{
     combined.sort(Comparator.comparing(Message::getId));
 
     return combined;
-  }
-  
+  }  
 }
