@@ -1,7 +1,9 @@
 package com._labor.fakecord.services.impl;
 
+import java.util.List;
 import java.util.UUID;
 
+import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
@@ -48,6 +50,12 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
   }
 
   @Override
+  public List<UUID> getMemberIds(Long channelId) {
+    log.debug("Fetching all member IDs for channel {}", channelId);
+    return repository.findAllUserIdsByChannelId(channelId);
+  }
+
+  @Override
   @Transactional
   public void removeMember(Long channelId, UUID userId) {
     log.info("Removing user {} from channel {}", userId, channelId);
@@ -83,6 +91,24 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
   @Transactional(readOnly = true)
   public boolean isMember(Long channelId, UUID userId) {
     return repository.existsById_ChannelIdAndId_UserId(channelId, userId);
+  }
+
+  @Override
+  @Transactional
+  public void removeAllMembersFromChannel(Long channelId, UUID operatorId) {
+    log.info("Attempting to remove all members from channel {} by operator {}", channelId, operatorId);
+
+    if (!channelRepository.existsById(channelId)) {
+      throw new ResourceNotFoundException("Channel not found");
+    }
+
+    if (!repository.existsById_ChannelIdAndId_UserId(channelId, operatorId)) {
+        throw new RuntimeException("Access denied: Operator is not a member of this channel");
+    }
+
+    repository.deleteAllByChannelId(channelId);
+
+    log.info("All members removed from channel {}", channelId);    
   }
   
 }
