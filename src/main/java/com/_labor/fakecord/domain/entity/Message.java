@@ -6,6 +6,8 @@ import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
@@ -14,6 +16,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import com._labor.fakecord.domain.enums.MessageType;
 
 @Entity
 @Getter
@@ -27,6 +30,10 @@ public class Message {
   @Id
   private Long id;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "type", nullable = false)
+  private MessageType type;
+  
   @Column(name = "content")
   private String content;
 
@@ -46,12 +53,13 @@ public class Message {
   private Instant updatedAt;
 
   @Builder
-  public Message(Long id, Long channelId, UUID authorId, String content, String nonce) {
+  public Message(Long id, MessageType type, Long channelId, UUID authorId, String content, String nonce) {
     Objects.requireNonNull(id, "ID (TSID) must be provided");
     Objects.requireNonNull(channelId, "Channel ID is required");
     Objects.requireNonNull(authorId, "Author ID is required");
 
     this.id = id;
+    this.type = type;
     this.channelId = channelId;
     this.authorId = authorId;
     this.content = content;

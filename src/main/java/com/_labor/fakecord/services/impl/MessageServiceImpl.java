@@ -11,6 +11,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.domain.entity.Message;
+import com._labor.fakecord.domain.enums.MessageType;
 import com._labor.fakecord.infrastructure.id.IdGenerator;
 import com._labor.fakecord.repository.ChannelMemberRepository;
 import com._labor.fakecord.repository.MessageRepository;
@@ -41,6 +42,7 @@ public class MessageServiceImpl implements MessageService{
 
     Message message = Message.builder()
     .id(messageId)
+    .type(MessageType.TEXT)
     .channelId(channelId)
     .authorId(authorId)
     .content(content)
