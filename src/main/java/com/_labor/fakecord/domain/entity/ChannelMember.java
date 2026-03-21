@@ -33,8 +33,8 @@ public class ChannelMember {
   private Instant joinAt;
 
   @Builder
-  public ChannelMember(Long channelId, UUID userId) {
-    this.id = new ChannelMemberId(channelId, userId);
+  public ChannelMember(ChannelMemberId id) {
+    this.id = id;
     this.joinAt = Instant.now();
     this.lastReadMessageId = 0L;
   }

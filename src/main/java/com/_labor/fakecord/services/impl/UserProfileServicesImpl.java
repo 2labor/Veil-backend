@@ -67,7 +67,7 @@ public class UserProfileServicesImpl implements UserProfileServices{
     }
 
     mapper.toUpdateDto(updateDto, profile);
-    UserProfile savedProfile = repository.save(profile);
+    repository.save(profile);
 
     cache.evict(userId);
 
