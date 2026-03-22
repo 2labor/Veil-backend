@@ -11,9 +11,11 @@ import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.domain.entity.Message;
+import com._labor.fakecord.domain.enums.MessageType;
 import com._labor.fakecord.infrastructure.id.IdGenerator;
 import com._labor.fakecord.repository.ChannelMemberRepository;
 import com._labor.fakecord.repository.MessageRepository;
+import com._labor.fakecord.services.MessageBroadcaster;
 import com._labor.fakecord.services.MessageService;
 
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ public class MessageServiceImpl implements MessageService{
   private final MessageRepository repository;
   private final ChannelMemberRepository memberRepository;
   private final IdGenerator idGenerator;
+  private final MessageBroadcaster broadcaster;
 
   @Override
   public Message sendMessage(Long channelId, UUID authorId, String content, String nonce) {
@@ -41,13 +44,44 @@ public class MessageServiceImpl implements MessageService{
 
     Message message = Message.builder()
     .id(messageId)
+    .type(MessageType.TEXT)
     .channelId(channelId)
     .authorId(authorId)
     .content(content)
     .nonce(nonce)
     .build();
 
-    return repository.save(message);
+    
+    Message saved = repository.save(message);
+    broadcaster.broadcast(saved);
+
+    return saved;
+  }
+
+  @Override
+  public Message sendSystemMessage(Long channelId, UUID authorId, MessageType type, String metadata) {
+    log.info("Creating system message: type={}, channel={}, operator={}", type, channelId, authorId);
+
+    String systemNonce = String.format("sys:%s:%d:%s", type, channelId, metadata);
+
+    if (repository.existsByNonce(systemNonce)) {
+      log.warn("System message with nonce {} already exists. Skipping.", systemNonce);
+      return null;
+    }
+
+    Message systemMessage = Message.builder()
+      .id(idGenerator.nextId())
+      .channelId(channelId)
+      .authorId(authorId)
+      .type(type)
+      .content(metadata)
+      .nonce(systemNonce)
+      .build();
+    
+    Message saved = repository.save(systemMessage);
+    broadcaster.broadcast(saved);
+
+    return saved;
   }
 
   @Override
@@ -74,6 +108,8 @@ public class MessageServiceImpl implements MessageService{
     }
 
     repository.delete(message);
+    broadcaster.broadcastDeletion(message.getChannelId(), messageId);
+
     log.info("Message {} deleted by author {}", messageId, requestId);
   }
 
@@ -108,6 +144,5 @@ public class MessageServiceImpl implements MessageService{
     combined.sort(Comparator.comparing(Message::getId));
 
     return combined;
-  }
-  
+  }  
 }

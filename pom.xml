@@ -210,6 +210,12 @@
             <version>5.2.6</version>
         </dependency>
 
+        <!-- TCP for rebbitMq -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-reactor-netty</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

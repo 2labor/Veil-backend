@@ -39,20 +39,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
   @Override 
   public void configureMessageBroker(MessageBrokerRegistry registry) {
+    registry.enableStompBrokerRelay("/topic", "/queue")
+      .setRelayHost("localhost")
+      .setRelayPort(61613)
+      .setClientLogin("user")
+      .setClientPasscode("password")
+      .setSystemLogin("user")
+      .setSystemPasscode("password");
 
-    /**
-     * manages goes from server to client starts from "/topic"
-     * client will subscribed on canal "/topic/public" 
-     */
-    registry.enableSimpleBroker("/topic", "/queue")
-      .setHeartbeatValue(new long[]{10000, 10000})
-      .setTaskScheduler(heartbeatScheduler());
-    
-    /**
-     * manages goes from client to server starts from "/app"
-     */
     registry.setApplicationDestinationPrefixes("/app");
-
     registry.setUserDestinationPrefix("/user");
   }
 
