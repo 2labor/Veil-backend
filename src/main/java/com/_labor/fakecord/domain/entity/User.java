@@ -62,6 +62,10 @@ public class User {
   public User() {
   }
 
+  public User(UUID id) {
+    this.id = id;
+  }
+
   @PrePersist
   public void onCreate() {
     LocalDateTime now = LocalDateTime.now();

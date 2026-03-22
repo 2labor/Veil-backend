@@ -21,6 +21,11 @@ public class PresenceService {
   private final String TOPIC_PRESENCE = "user-presence-events";
 
   public void processUserOnline(UUID userId) {
+    if (statusService.isOnline(userId)) {
+      log.trace("User {} already ONLINE, skipping event", userId);
+      return;
+    }
+
     log.debug("Processing online status for user: {}", userId);
     statusService.setOnline(userId);
     kafkaTemplate.send(TOPIC_PRESENCE, userId.toString(), "CONNECTED");

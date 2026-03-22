@@ -5,11 +5,9 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.security.access.method.P;
 import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.domain.dto.UserProfileFullDto;
-import com._labor.fakecord.domain.entity.UserProfile;
 import com._labor.fakecord.domain.enums.UserStatus;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;
 import com._labor.fakecord.repository.UserConnectionRepository;
@@ -79,7 +77,7 @@ public class UserProfileCacheImpl implements UserProfileCache {
     ? UserStatus.OFFLINE 
     : staticProfile.statusPreference();
 
-  return staticProfile.toBuilder() 
+  return staticProfile.toBuilder()
     .status(effective)
     .statusPreference(maskedPreference)
     .build();
