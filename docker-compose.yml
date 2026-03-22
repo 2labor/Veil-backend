@@ -60,8 +60,9 @@ services:
     container_name: fakecord-rabbitmq
     restart: always
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "5672:5672" # AMQP
+      - "15672:15672" # Management UI
+      - "61613:61613" # STOMP (WebSockets)
     environment:
       RABBITMQ_DEFAULT_USER: user
       RABBITMQ_DEFAULT_PASS: password

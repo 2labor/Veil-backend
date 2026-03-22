@@ -16,7 +16,7 @@ import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
-import com._labor.fakecord.domain.dto.ChatMessageDto;
+import com._labor.fakecord.domain.dto.MessageDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
@@ -38,7 +38,7 @@ public class ValidationInterceptor implements ChannelInterceptor {
       try {
             byte[] payload = (byte[]) message.getPayload();
             
-            var dto = objectMapper.readValue(payload, ChatMessageDto.class);
+            var dto = objectMapper.readValue(payload, MessageDto.class);
 
             var violations = validator.validate(dto);
 

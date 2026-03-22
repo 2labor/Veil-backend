@@ -15,6 +15,7 @@ import com._labor.fakecord.domain.enums.MessageType;
 import com._labor.fakecord.infrastructure.id.IdGenerator;
 import com._labor.fakecord.repository.ChannelMemberRepository;
 import com._labor.fakecord.repository.MessageRepository;
+import com._labor.fakecord.services.MessageBroadcaster;
 import com._labor.fakecord.services.MessageService;
 
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class MessageServiceImpl implements MessageService{
   private final MessageRepository repository;
   private final ChannelMemberRepository memberRepository;
   private final IdGenerator idGenerator;
+  private final MessageBroadcaster broadcaster;
 
   @Override
   public Message sendMessage(Long channelId, UUID authorId, String content, String nonce) {
@@ -49,10 +51,13 @@ public class MessageServiceImpl implements MessageService{
     .nonce(nonce)
     .build();
 
-    return repository.save(message);
+    
+    Message saved = repository.save(message);
+    broadcaster.broadcast(saved);
+
+    return saved;
   }
 
-  
   @Override
   public Message sendSystemMessage(Long channelId, UUID authorId, MessageType type, String metadata) {
     log.info("Creating system message: type={}, channel={}, operator={}", type, channelId, authorId);
@@ -67,14 +72,16 @@ public class MessageServiceImpl implements MessageService{
     Message systemMessage = Message.builder()
       .id(idGenerator.nextId())
       .channelId(channelId)
-      .channelId(channelId)
       .authorId(authorId)
       .type(type)
       .content(metadata)
       .nonce(systemNonce)
       .build();
     
-    return repository.save(systemMessage);
+    Message saved = repository.save(systemMessage);
+    broadcaster.broadcast(saved);
+
+    return saved;
   }
 
   @Override
@@ -101,6 +108,8 @@ public class MessageServiceImpl implements MessageService{
     }
 
     repository.delete(message);
+    broadcaster.broadcastDeletion(message.getChannelId(), messageId);
+
     log.info("Message {} deleted by author {}", messageId, requestId);
   }
 
