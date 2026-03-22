@@ -37,7 +37,7 @@ public class PresenceInterceptor implements ChannelInterceptor {
 
     if (userId != null) {
       switch (cmd) {
-        case CONNECT, SEND, SUBSCRIBE -> {
+        case CONNECT -> {
           statusService.setOnline(UUID.fromString(userId));
           log.debug("Presence ONLINE: user={} cmd={}", userId, cmd);
         }
