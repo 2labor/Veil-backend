@@ -128,6 +128,7 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
       .orElseThrow(() -> new IllegalArgumentException("Member not found"));
 
     Long lastReadId = member.getLastReadMessageId();
+    if (lastReadId == null) lastReadId = 0L;
 
     return (int) messageRepository.countByChannelIdAndIdGreaterThan(channelId, lastReadId);
   }
