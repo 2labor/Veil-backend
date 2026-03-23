@@ -1,9 +1,5 @@
 package com._labor.fakecord.interceptor;
 
-import jakarta.validation.Validator;
-
-import jakarta.validation.ConstraintViolationException;
-
 import java.io.IOException;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,8 +12,11 @@ import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
-import com._labor.fakecord.domain.dto.MessageDto;
+import com._labor.fakecord.domain.dto.MessageRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
 
 @Component
 public class ValidationInterceptor implements ChannelInterceptor {
@@ -38,7 +37,7 @@ public class ValidationInterceptor implements ChannelInterceptor {
       try {
             byte[] payload = (byte[]) message.getPayload();
             
-            var dto = objectMapper.readValue(payload, MessageDto.class);
+            var dto = objectMapper.readValue(payload, MessageRequest.class);
 
             var violations = validator.validate(dto);
 

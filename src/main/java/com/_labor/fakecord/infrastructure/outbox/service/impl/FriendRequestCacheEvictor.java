@@ -11,6 +11,7 @@ import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.infrastructure.cache.Dto.CachedSlice;
 import com._labor.fakecord.infrastructure.cache.services.CacheVersionService;
 import com._labor.fakecord.infrastructure.outbox.domain.CacheEvictEvent;
+import com._labor.fakecord.infrastructure.outbox.domain.enums.CacheSubType;
 import com._labor.fakecord.infrastructure.outbox.domain.enums.CacheType;
 import com._labor.fakecord.infrastructure.outbox.service.CacheEvictor;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -43,8 +44,8 @@ public class FriendRequestCacheEvictor implements CacheEvictor {
     UUID userId = event.aggregateId();
     CacheType type = CacheType.fromString(event.cacheName());
 
-    if (type == CacheType.ALL) {
-      log.debug("Global FriendRequest eviction for user: {}", userId);
+    if (event.subType() == CacheSubType.ALL || type == CacheType.ALL) {
+      log.debug("Full FriendRequest eviction for user: {}", userId);
       evictCounter(userId, "incoming");
       evictCounter(userId, "outgoing");
       evictList(userId, CacheType.REQUESTS_INCOMING);
@@ -53,8 +54,11 @@ public class FriendRequestCacheEvictor implements CacheEvictor {
     }
     
     if (type == CacheType.REQUEST_COUNTER) {
-      String direction = event.subType().name().contains("INCOMING") ? "incoming" : "outgoing";
-      evictCounter(userId, direction);
+      if (event.subType().name().contains("INCOMING")) {
+        evictCounter(userId, "incoming");
+      } else if (event.subType().name().contains("OUTGOING")) {
+        evictCounter(userId, "outgoing");
+      }
     } else {
       CacheType direction = event.subType().name().contains("INCOMING") 
         ? CacheType.REQUESTS_INCOMING 
@@ -62,7 +66,7 @@ public class FriendRequestCacheEvictor implements CacheEvictor {
       evictList(userId, direction);
     }
   }
-  
+
   private void evictCounter(UUID userId, String direction) {
     String cacheKey = CacheType.REQUEST_COUNTER.getPrefix() + direction + ":counter" + userId;
     redisTemplate.delete(cacheKey);

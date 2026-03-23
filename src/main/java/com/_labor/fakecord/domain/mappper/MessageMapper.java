@@ -2,7 +2,6 @@ package com._labor.fakecord.domain.mappper;
 
 import com._labor.fakecord.domain.dto.MessageDto;
 import com._labor.fakecord.domain.dto.UserProfileShort;
-import com._labor.fakecord.domain.entity.ChatMessage;
 import com._labor.fakecord.domain.entity.Message;
 
 public interface MessageMapper {

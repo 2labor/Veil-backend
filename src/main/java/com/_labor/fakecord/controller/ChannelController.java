@@ -132,8 +132,8 @@ public class ChannelController {
 
   @PutMapping("/reorder/{serverId}")
   public ResponseEntity<Void> reorderChannels(
-    @RequestBody List<Long> channelIds,
-    @RequestBody Long serverId
+    @PathVariable Long serverId,
+    @RequestBody List<Long> channelIds
   ) {
     service.reorderChannels(serverId, channelIds);
     return ResponseEntity.noContent().build();

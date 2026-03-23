@@ -17,7 +17,6 @@ import io.lettuce.core.dynamic.annotation.Param;
 
 @Repository
 public interface MessageRepository extends JpaRepository<Message, Long>{
-  @Modifying
   boolean existsByNonce(String none);
   Slice<Message> findAllByChannelIdOrderByIdDesc(Long channelId, Pageable pageable);
   Slice<Message> findAllByChannelIdAndIdLessThanOrderByIdDesc(Long channelId, Long messageId, Pageable pageable);
