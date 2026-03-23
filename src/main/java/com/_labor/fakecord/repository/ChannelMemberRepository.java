@@ -15,17 +15,25 @@ import com._labor.fakecord.domain.entity.ChannelMemberId;
 
 import io.lettuce.core.dynamic.annotation.Param;
 
-public interface ChannelMemberRepository extends JpaRepository<ChannelMember, ChannelMemberId>{
+public interface ChannelMemberRepository extends JpaRepository<ChannelMember, ChannelMemberId> {
+
   Slice<ChannelMember> findAllById_ChannelId(Long channelId, Pageable pageable);
+
   boolean existsById_ChannelIdAndId_UserId(Long channelId, UUID userId);
+
   Optional<ChannelMember> findById_ChannelIdAndId_UserId(Long channelId, UUID userId);
-  List<UUID> findAllUserIdsByChannelId(Long channelId);
+
+  @Query("SELECT cm.id.userId FROM ChannelMember cm WHERE cm.id.channelId = :channelId")
+  List<UUID> findAllUserIdsByChannelId(@Param("channelId") Long channelId);
+
+  @Modifying
+  @Query("DELETE FROM ChannelMember cm WHERE cm.id.channelId = :channelId AND cm.id.userId = :userId")
+  void deleteById_ChannelIdAndId_UserId(@Param("channelId") Long channelId, @Param("userId") UUID userId); 
+
   @Modifying
   @Query("DELETE FROM ChannelMember cm WHERE cm.id.channelId = :channelId")
-  void deleteById_ChannelIdAndId_UserId(Long channelId, UUID userId); 
-  @Modifying
-  @Query("DELETE FROM ChannelMember cm WHERE cm.id.channelId = :channelId")
-  void deleteAllByChannelId(Long channelId);
+  void deleteAllByChannelId(@Param("channelId") Long channelId);
+
   @Query("SELECT cm.id.userId FROM ChannelMember cm " +
     "WHERE cm.id.channelId = :channelId AND cm.id.userId <> :myId")
   Optional<UUID> findFirstRecipientId(@Param("channelId") Long channelId, @Param("myId") UUID myId);
