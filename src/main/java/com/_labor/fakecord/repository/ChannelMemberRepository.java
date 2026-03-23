@@ -13,6 +13,8 @@ import org.springframework.data.jpa.repository.Query;
 import com._labor.fakecord.domain.entity.ChannelMember;
 import com._labor.fakecord.domain.entity.ChannelMemberId;
 
+import io.lettuce.core.dynamic.annotation.Param;
+
 public interface ChannelMemberRepository extends JpaRepository<ChannelMember, ChannelMemberId>{
   Slice<ChannelMember> findAllById_ChannelId(Long channelId, Pageable pageable);
   boolean existsById_ChannelIdAndId_UserId(Long channelId, UUID userId);
@@ -24,4 +26,7 @@ public interface ChannelMemberRepository extends JpaRepository<ChannelMember, Ch
   @Modifying
   @Query("DELETE FROM ChannelMember cm WHERE cm.id.channelId = :channelId")
   void deleteAllByChannelId(Long channelId);
+  @Query("SELECT cm.id.userId FROM ChannelMember cm " +
+    "WHERE cm.id.channelId = :channelId AND cm.id.userId <> :myId")
+  Optional<UUID> findFirstRecipientId(@Param("channelId") Long channelId, @Param("myId") UUID myId);
 }

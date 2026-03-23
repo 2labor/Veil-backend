@@ -13,6 +13,7 @@ import com._labor.fakecord.domain.entity.ChannelMember;
 import com._labor.fakecord.domain.entity.ChannelMemberId;
 import com._labor.fakecord.repository.ChannelMemberRepository;
 import com._labor.fakecord.repository.ChannelRepository;
+import com._labor.fakecord.repository.MessageRepository;
 import com._labor.fakecord.services.ChannelMemberService;
 
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
 
   private final ChannelMemberRepository repository;
   private final ChannelRepository channelRepository;
+  private final MessageRepository messageRepository;
 
   @Override
   @Transactional
@@ -110,5 +112,37 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
 
     log.info("All members removed from channel {}", channelId);    
   }
-  
+
+  @Override
+  @Transactional(readOnly = true)
+  public UUID getRecipientId(Long channelId, UUID myId) {
+    log.debug("Finding recipient for DM channel {} excluding user {}", channelId, myId);
+
+    return repository.findFirstRecipientId(channelId, myId)
+      .orElseThrow(() -> new RuntimeException("Recipient not found or you are the only member"));
+  }
+
+  @Override
+  public int getUnreadCount(Long channelId, UUID userId) {
+    ChannelMember member = repository.findById_ChannelIdAndId_UserId(channelId, userId)
+      .orElseThrow(() -> new IllegalArgumentException("Member not found"));
+
+    Long lastReadId = member.getLastReadMessageId();
+
+    return (int) messageRepository.countByChannelIdAndIdGreaterThan(channelId, lastReadId);
+  }
+
+  @Override
+  public void addMembers(Long channelId, List<UUID> userIds) {
+    log.debug("Adding {} members to channel {}", userIds.size(), channelId);
+
+    List<ChannelMember> members = userIds.stream()
+      .map(userId -> {
+        ChannelMemberId id = new ChannelMemberId(channelId, userId);
+        return ChannelMember.builder().id(id).build();
+      })
+      .toList();
+
+    repository.saveAll(members);
+  }
 }

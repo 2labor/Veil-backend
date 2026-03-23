@@ -1,5 +1,6 @@
 package com._labor.fakecord.services.impl;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -11,9 +12,11 @@ import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.domain.entity.Message;
+import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.domain.enums.MessageType;
 import com._labor.fakecord.infrastructure.id.IdGenerator;
 import com._labor.fakecord.repository.ChannelMemberRepository;
+import com._labor.fakecord.repository.ChannelRepository;
 import com._labor.fakecord.repository.MessageRepository;
 import com._labor.fakecord.services.MessageBroadcaster;
 import com._labor.fakecord.services.MessageService;
@@ -28,6 +31,7 @@ public class MessageServiceImpl implements MessageService{
 
   private final MessageRepository repository;
   private final ChannelMemberRepository memberRepository;
+  private final ChannelRepository channelRepository;
   private final IdGenerator idGenerator;
   private final MessageBroadcaster broadcaster;
 
@@ -54,6 +58,24 @@ public class MessageServiceImpl implements MessageService{
     
     Message saved = repository.save(message);
     broadcaster.broadcast(saved);
+
+    // TODO: Optimization - Move this to Redis 'Write-Behind' pattern
+    // Currently, we skip synchronous DB update to avoid lock contention
+    // updateChannelMetadata(channelId, saved.getId());
+    channelRepository.findById(channelId).ifPresent(channel -> {
+      channel.setLastMessageId(messageId);
+      channel.setLastActivityAt(Instant.now());
+
+      if (channel.getType() == ChannelType.DM || channel.getType() == ChannelType.GROUP_DM) {
+        String preview = saved.getContent(); 
+        if (preview != null && preview.length() > 100) {
+          preview = preview.substring(0, 97) + "...";
+        }
+        channel.setLastMessageContent(preview);
+      }
+
+      channelRepository.save(channel);
+    });
 
     return saved;
   }
