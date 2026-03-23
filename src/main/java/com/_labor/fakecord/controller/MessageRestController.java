@@ -5,15 +5,12 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RestController;
-
-import lombok.RequiredArgsConstructor;
-
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import com._labor.fakecord.domain.dto.MessageDto;
 import com._labor.fakecord.domain.entity.Message;
@@ -23,6 +20,8 @@ import com._labor.fakecord.domain.mappper.UserProfileMapper;
 import com._labor.fakecord.services.ChannelMemberService;
 import com._labor.fakecord.services.MessageService;
 import com._labor.fakecord.services.UserProfileCache;
+
+import lombok.RequiredArgsConstructor;
 
 
 @RestController
