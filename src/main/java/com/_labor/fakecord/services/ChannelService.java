@@ -17,7 +17,7 @@ public interface ChannelService {
   Slice<Channel> getUserDirectMessages(UUID userId, Pageable pageable);
   void updateLastActivity(Long channelId);
   void renameChannel(Long channelId, String newName);
-  void reorderChannels(List<Long> channelIds);
+  void reorderChannels(Long serverId, List<Long> channelIds);
   void deleteChannel(Long channelId, UUID operatorId);
-  void addUserToGroup(UUID operatorId, Long channelId, UUID targetUserId);
+  void addMembersToGroup(UUID operatorId, Long channelId, List<UUID> targetUserIds);
 }

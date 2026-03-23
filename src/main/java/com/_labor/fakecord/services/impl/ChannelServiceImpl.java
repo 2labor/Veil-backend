@@ -88,45 +88,48 @@ public class ChannelServiceImpl implements ChannelService {
 
     Channel saved = repository.save(group);
 
-    uniqueUsers.forEach(userId -> memberService.addMember(saved.getId(), userId));
+    memberService.addMembers(saved.getId(), uniqueUsers.stream().toList());
 
     return saved;
   }
 
   @Override
   @Transactional
-  public void addUserToGroup(UUID operatorId, Long channelId, UUID targetUserId) {
-    log.info("User {} is adding {} to channel {}", operatorId, targetUserId, channelId);
+  public void addMembersToGroup(UUID operatorId, Long channelId, List<UUID> targetUserIds) {
+    log.info("User {} is adding {} users to channel {}", operatorId, targetUserIds.size(), channelId);
 
     Channel channel = repository.findById(channelId)
       .orElseThrow(() -> new IllegalArgumentException("Channel not found"));
 
     if (!memberService.isMember(channelId, operatorId)) {
-      throw new RuntimeException("Access denied: You are not in this channel");
-    }    
+      throw new RuntimeException("Access denied: You are not a member of this channel");
+    }
 
     switch(channel.getType()) {
       case DM -> {
         log.info("Forking DM {} into a new Group DM", channelId);
-        List<UUID> participants = memberService.getMemberIds(channelId);
-        createGroupChat(operatorId, participants);
+        List<UUID> currentParticipants = memberService.getMemberIds(channelId);
+        
+        Set<UUID> allParticipants = new HashSet<>(currentParticipants);
+        allParticipants.addAll(targetUserIds);
+        
+        createGroupChat(operatorId, allParticipants.stream().toList());
       }
 
       case GROUP_DM -> {
-        if (memberService.isMember(channelId, targetUserId)) {
-          log.debug("User {} already in group {}", targetUserId, channelId);
-          return;
-        }
+        List<UUID> currentMembers = memberService.getMemberIds(channelId);
+        List<UUID> finalToAdd = targetUserIds.stream()
+            .distinct()
+            .filter(id -> !currentMembers.contains(id))
+            .toList();
 
-        memberService.addMember(channelId, targetUserId);
-        updateLastActivity(channelId);
+        if (!finalToAdd.isEmpty()) {
+            memberService.addMembers(channelId, finalToAdd);
+            updateLastActivity(channelId);
+        }
       }
 
-      case GUILD_TEXT, GUILD_VOICE -> 
-        throw new RuntimeException("Cannot manually add members to server channels. Use invites/roles.");
-
-      default ->
-        throw new UnsupportedOperationException("Adding members to channel type " + channel.getType() + " is not supported");
+      default -> throw new UnsupportedOperationException("Can only add members to DMs or Group DMs");
     }
   }
 
@@ -158,8 +161,8 @@ public class ChannelServiceImpl implements ChannelService {
 
   @Override
   @Transactional
-  public void reorderChannels(List<Long> channelIds) {
-    List<Channel> channels = repository.findAllById(channelIds);
+  public void reorderChannels(Long serverId, List<Long> channelIds) {
+    List<Channel> channels = repository.findAllByServerIdOrderByPositionAsc(serverId);
 
     Map<Long, Channel> channelMap = channels.stream()
       .collect(Collectors.toMap(Channel::getId, c -> c));
@@ -194,5 +197,4 @@ public class ChannelServiceImpl implements ChannelService {
 
     log.info("Channel {} successfully deleted by {}", channelId, operatorId);
   }
-  
 }
