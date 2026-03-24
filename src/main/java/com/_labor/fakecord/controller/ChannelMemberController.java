@@ -89,6 +89,16 @@ public class ChannelMemberController {
     return ResponseEntity.noContent().build();
   }
 
+  @DeleteMapping("/{targetId}")
+  public ResponseEntity<Void> kickUser(
+    @PathVariable Long channelId, 
+    @PathVariable UUID targetId,
+    Principal principal
+  ) {
+    service.kickMember(channelId, targetId,  getUserId(principal));
+    return ResponseEntity.noContent().build();
+  }
+  
   private UUID getUserId(Principal principal) {
     return UUID.fromString(principal.getName());
   }

@@ -62,7 +62,6 @@ public class ChannelController {
     List<DirectMessageChannelDto> dtos = slice.getContent().stream().map(channel -> {
       int unreadCount = memberService.getUnreadCount(channel.getId(), myId);
 
-      // GROUP_DM не имеет единственного получателя — передаём null как recipient
       if (channel.getType() == ChannelType.GROUP_DM) {
         return mapper.toDirectDto(channel, null, unreadCount);
       }
@@ -110,7 +109,6 @@ public class ChannelController {
   ) {
     UUID creatorId = getId(principal);
     Channel group = service.createGroupChat(creatorId, participantIds);
-    // Возвращаем DirectMessageChannelDto с null recipient — фронт определит как группу
     return ResponseEntity.ok(mapper.toDirectDto(group, null, 0));
   }
 
@@ -140,6 +138,16 @@ public class ChannelController {
     UUID operatorId = getId(principal);
     service.deleteChannel(channelId, operatorId);
     return ResponseEntity.noContent().build();
+  }
+
+  @PatchMapping("/{channelId}/transfer-ownership")
+  public ResponseEntity<Void> transferOwnership(
+    @PathVariable Long channelId,
+    @RequestParam UUID newOwnerId,
+    Principal principal
+  ) {
+    memberService.transferOwnership(channelId, getId(principal), newOwnerId);
+    return ResponseEntity.ok().build();
   }
 
   private UUID getId(Principal principal) {
