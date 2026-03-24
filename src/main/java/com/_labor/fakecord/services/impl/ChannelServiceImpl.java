@@ -83,6 +83,7 @@ public class ChannelServiceImpl implements ChannelService {
       .id(channelId)
       .type(ChannelType.GROUP_DM)
       .name(null)
+      .ownerId(creatorId)
       .lastActivityAt(Instant.now())
       .build();
 

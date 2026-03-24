@@ -85,7 +85,7 @@ public class ChannelMemberController {
     @PathVariable Long channelId,
     Principal principal
   ) {
-    service.removeMember(channelId, getUserId(principal));
+    service.leaveMember(channelId, getUserId(principal));
     return ResponseEntity.noContent().build();
   }
 

@@ -28,6 +28,12 @@ public interface ChannelMemberRepository extends JpaRepository<ChannelMember, Ch
   @Query("SELECT cm.id.userId FROM ChannelMember cm WHERE cm.id.channelId = :channelId")
   List<UUID> findAllUserIdsByChannelId(@Param("channelId") Long channelId);
 
+  @Query("SELECT cm.id.userId FROM ChannelMember cm " +
+    "WHERE cm.id.channelId = :channelId AND cm.id.userId <> :myId")
+  Optional<UUID> findFirstRecipientId(@Param("channelId") Long channelId, @Param("myId") UUID myId);
+
+  long countById_ChannelId(Long channelId);
+
   @Modifying
   @Query("DELETE FROM ChannelMember cm WHERE cm.id.channelId = :channelId AND cm.id.userId = :userId")
   void deleteById_ChannelIdAndId_UserId(@Param("channelId") Long channelId, @Param("userId") UUID userId); 
@@ -36,7 +42,4 @@ public interface ChannelMemberRepository extends JpaRepository<ChannelMember, Ch
   @Query("DELETE FROM ChannelMember cm WHERE cm.id.channelId = :channelId")
   void deleteAllByChannelId(@Param("channelId") Long channelId);
 
-  @Query("SELECT cm.id.userId FROM ChannelMember cm " +
-    "WHERE cm.id.channelId = :channelId AND cm.id.userId <> :myId")
-  Optional<UUID> findFirstRecipientId(@Param("channelId") Long channelId, @Param("myId") UUID myId);
 }
