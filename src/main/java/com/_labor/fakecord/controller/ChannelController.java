@@ -60,13 +60,16 @@ public class ChannelController {
     var slice = service.getUserDirectMessages(myId, PageRequest.of(page, size));
 
     List<DirectMessageChannelDto> dtos = slice.getContent().stream().map(channel -> {
-      UUID recipientId = memberService.getRecipientId(channel.getId(), myId);
-
-      UserProfileFullDto profileDto = profileCache.getUserProfile(recipientId);
-
-      UserProfileShort profileShort = profileMapper.toShortDto(profileDto, profileDto.status());
-      
       int unreadCount = memberService.getUnreadCount(channel.getId(), myId);
+
+      // GROUP_DM не имеет единственного получателя — передаём null как recipient
+      if (channel.getType() == ChannelType.GROUP_DM) {
+        return mapper.toDirectDto(channel, null, unreadCount);
+      }
+
+      UUID recipientId = memberService.getRecipientId(channel.getId(), myId);
+      UserProfileFullDto profileDto = profileCache.getUserProfile(recipientId);
+      UserProfileShort profileShort = profileMapper.toShortDto(profileDto, profileDto.status());
 
       return mapper.toDirectDto(channel, profileShort, unreadCount);
     })
@@ -101,13 +104,14 @@ public class ChannelController {
   }
 
   @PostMapping("/group")
-  public ResponseEntity<ChannelDto> createDmGroup(
+  public ResponseEntity<DirectMessageChannelDto> createDmGroup(
     @RequestBody List<UUID> participantIds,
     Principal principal
   ) {
     UUID creatorId = getId(principal);
     Channel group = service.createGroupChat(creatorId, participantIds);
-    return ResponseEntity.ok(mapper.toDto(group)); 
+    // Возвращаем DirectMessageChannelDto с null recipient — фронт определит как группу
+    return ResponseEntity.ok(mapper.toDirectDto(group, null, 0));
   }
 
   @PatchMapping("/{channelId}/name")
@@ -117,17 +121,6 @@ public class ChannelController {
   ) {
     service.renameChannel(channelId, newName);
     return ResponseEntity.noContent().build();
-  }
-
-  @PostMapping("/{channelId}/members")
-  public ResponseEntity<Void> addMembersToGroup(
-    @PathVariable Long channelId,
-    @RequestBody List<UUID> userIds,
-    Principal principal
-  ) {
-    UUID operatorId = getId(principal);
-    service.addMembersToGroup(operatorId, channelId, userIds);
-    return ResponseEntity.ok().build();
   }
 
   @PutMapping("/reorder/{serverId}")

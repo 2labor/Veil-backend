@@ -19,5 +19,4 @@ public interface ChannelService {
   void renameChannel(Long channelId, String newName);
   void reorderChannels(Long serverId, List<Long> channelIds);
   void deleteChannel(Long channelId, UUID operatorId);
-  void addMembersToGroup(UUID operatorId, Long channelId, List<UUID> targetUserIds);
-}
+} 

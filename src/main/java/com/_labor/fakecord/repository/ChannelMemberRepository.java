@@ -23,6 +23,8 @@ public interface ChannelMemberRepository extends JpaRepository<ChannelMember, Ch
 
   Optional<ChannelMember> findById_ChannelIdAndId_UserId(Long channelId, UUID userId);
 
+  List<UUID> findAllUserIdsByChannelIdAndUserIdIn(Long channelId, List<UUID> userIds);
+
   @Query("SELECT cm.id.userId FROM ChannelMember cm WHERE cm.id.channelId = :channelId")
   List<UUID> findAllUserIdsByChannelId(@Param("channelId") Long channelId);
 

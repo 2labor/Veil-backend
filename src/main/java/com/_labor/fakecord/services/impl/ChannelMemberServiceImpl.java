@@ -6,11 +6,15 @@ import java.util.UUID;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com._labor.fakecord.domain.entity.Channel;
 import com._labor.fakecord.domain.entity.ChannelMember;
 import com._labor.fakecord.domain.entity.ChannelMemberId;
+import com._labor.fakecord.domain.enums.ChannelType;
+import com._labor.fakecord.domain.mappper.ChannelMemberMapper;
 import com._labor.fakecord.repository.ChannelMemberRepository;
 import com._labor.fakecord.repository.ChannelRepository;
 import com._labor.fakecord.repository.MessageRepository;
@@ -27,6 +31,7 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
   private final ChannelMemberRepository repository;
   private final ChannelRepository channelRepository;
   private final MessageRepository messageRepository;
+  private final ChannelMemberMapper mapper;
 
   @Override
   @Transactional
@@ -134,16 +139,39 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
   }
 
   @Override
-  public void addMembers(Long channelId, List<UUID> userIds) {
+  @Transactional
+  public void addMembers(UUID operatorId, Long channelId, List<UUID> userIds) {
     log.debug("Adding {} members to channel {}", userIds.size(), channelId);
 
-    List<ChannelMember> members = userIds.stream()
-      .map(userId -> {
-        ChannelMemberId id = new ChannelMemberId(channelId, userId);
-        return ChannelMember.builder().id(id).build();
-      })
-      .toList();
+    Channel channel = channelRepository.findById(channelId)
+      .orElseThrow(() -> new IllegalArgumentException("No channel with given id"));
+    
+    if (channel.getType() == ChannelType.GUILD_TEXT || channel.getType() == ChannelType.GUILD_VOICE) {
+      throw new AccessDeniedException("Cannot manually add members to a guild channel. Manage server members instead.");
+    }
+      
+    if (channel.getType() == ChannelType.DM) {
+      throw new IllegalStateException("Cannot add members to a private DM. Create a group instead.");
+    }
 
-    repository.saveAll(members);
+    if (channel.getType() == ChannelType.GROUP_DM && !isMember(channelId, operatorId)) {
+      throw new AccessDeniedException("You are not a member of this group");
+    }
+
+    List<UUID> uniqueIds = userIds.stream().distinct().toList();
+
+    List<UUID> existingId = repository.findAllUserIdsByChannelIdAndUserIdIn(channelId, uniqueIds);
+
+    List<UUID> newUsers = uniqueIds.stream().filter(
+      id -> !existingId.contains(id)
+    ).toList();
+
+    if(newUsers.isEmpty()) return;
+
+    List<ChannelMember> entities = newUsers.stream().map(
+      userId -> mapper.toEntity(channelId, userId)
+    ).toList();
+
+    repository.saveAll(entities);
   }
 }
