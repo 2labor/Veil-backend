@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com._labor.fakecord.domain.dto.ChannelDto;
 import com._labor.fakecord.domain.dto.DirectMessageChannelDto;
+import com._labor.fakecord.domain.dto.GroupChannelDto;
 import com._labor.fakecord.domain.dto.UserProfileFullDto;
 import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.domain.entity.Channel;
@@ -51,7 +52,7 @@ public class ChannelController {
   }
 
   @GetMapping("/me")
-  public ResponseEntity<List<DirectMessageChannelDto>> getMyDirectMessage(
+  public ResponseEntity<List<?>> getMyDirectMessage(
     @RequestParam(defaultValue = "0") int page,
     @RequestParam(defaultValue = "20") int size,
     Principal principal
@@ -59,11 +60,11 @@ public class ChannelController {
     UUID myId = getId(principal);
     var slice = service.getUserDirectMessages(myId, PageRequest.of(page, size));
 
-    List<DirectMessageChannelDto> dtos = slice.getContent().stream().map(channel -> {
+    List<?> dtos = slice.getContent().stream().map(channel -> {
       int unreadCount = memberService.getUnreadCount(channel.getId(), myId);
 
       if (channel.getType() == ChannelType.GROUP_DM) {
-        return mapper.toDirectDto(channel, null, unreadCount);
+        return mapper.toGroupDto(channel, unreadCount);
       }
 
       UUID recipientId = memberService.getRecipientId(channel.getId(), myId);
@@ -86,7 +87,7 @@ public class ChannelController {
   ) {
     UUID creatorId = getId(principal);
     Channel channel = service.createChannel(serverId, creatorId, name, type);
-    return ResponseEntity.ok(mapper.toDto(channel));
+    return ResponseEntity.ok(mapper.toDmDto(channel));
   }
 
   @PostMapping("/dm/{recipientId}")
@@ -103,13 +104,14 @@ public class ChannelController {
   }
 
   @PostMapping("/group")
-  public ResponseEntity<DirectMessageChannelDto> createDmGroup(
+  public ResponseEntity<GroupChannelDto> createDmGroup(
     @RequestBody List<UUID> participantIds,
+    @RequestParam(required = false) String name,
     Principal principal
   ) {
     UUID creatorId = getId(principal);
-    Channel group = service.createGroupChat(creatorId, participantIds);
-    return ResponseEntity.ok(mapper.toDirectDto(group, null, 0));
+    Channel group = service.createGroupChat(creatorId, participantIds, name);
+    return ResponseEntity.ok(mapper.toGroupDto(group, 0));
   }
 
   @PatchMapping("/{channelId}/name")

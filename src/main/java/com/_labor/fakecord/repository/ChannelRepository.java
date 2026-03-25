@@ -14,6 +14,8 @@ import org.springframework.data.jpa.repository.Query;
 
 import com._labor.fakecord.domain.entity.Channel;
 
+import io.lettuce.core.dynamic.annotation.Param;
+
 public interface ChannelRepository extends JpaRepository<Channel, Long>{
   List<Channel> findAllByServerIdOrderByPositionAsc(Long serverId);
 
@@ -25,10 +27,13 @@ public interface ChannelRepository extends JpaRepository<Channel, Long>{
   @Query("UPDATE Channel c SET c.lastActivityAt = :lastActivity WHERE c.id = :id")
   void updateLastActivity(Long id, Instant lastActivity);
 
-  @Query("SELECT c FROM Channel c JOIN ChannelMember cm ON c.id = cm.id.channelId " +
-    "WHERE cm.id.userId = :userId AND c.type = 'DM' " +
+  @Query("SELECT c FROM Channel c " +
+    "JOIN ChannelMember cm ON c.id = cm.id.channelId " +
+    "WHERE cm.id.userId = :userId " +
+    "AND (c.type = com._labor.fakecord.domain.enums.ChannelType.DM " + 
+    "OR c.type = com._labor.fakecord.domain.enums.ChannelType.GROUP_DM) " +
     "ORDER BY c.lastActivityAt DESC")
-  Slice<Channel> findActiveDirectMessages(UUID userId, Pageable pageable);
+  Slice<Channel> findActiveDirectMessages(@Param("userId") UUID userId, Pageable pageable);
 
   @Query("""
     SELECT c FROM Channel c 
