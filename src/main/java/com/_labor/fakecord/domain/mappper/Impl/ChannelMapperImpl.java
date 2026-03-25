@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import com._labor.fakecord.domain.dto.ChannelDto;
 import com._labor.fakecord.domain.dto.DirectMessageChannelDto;
+import com._labor.fakecord.domain.dto.GroupChannelDto;
 import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.domain.entity.Channel;
 import com._labor.fakecord.domain.mappper.ChannelMapper;
@@ -16,7 +17,7 @@ import com._labor.fakecord.domain.mappper.ChannelMapper;
 public class ChannelMapperImpl implements ChannelMapper {
 
   @Override
-  public ChannelDto toDto(Channel entity) {
+  public ChannelDto toDmDto(Channel entity) {
     if (entity == null) return null;
 
     return new ChannelDto(
@@ -30,7 +31,7 @@ public class ChannelMapperImpl implements ChannelMapper {
   }
 
   @Override
-  public Channel fromDto(ChannelDto dto) {
+  public Channel fromDmDto(ChannelDto dto) {
     if (dto == null) return null;
 
     return Channel.builder()  
@@ -61,8 +62,22 @@ public class ChannelMapperImpl implements ChannelMapper {
     if (channels == null || channels.isEmpty()) return Collections.emptyList();
 
     return channels.stream()
-      .map(this::toDto)
+      .map(this::toDmDto)
       .collect(Collectors.toList());
   }
+
+    @Override
+    public GroupChannelDto toGroupDto(Channel entity, int unreadCount) {
+      if (entity == null) return null;
+
+      return GroupChannelDto.builder()
+        .id(entity.getId())
+        .name(entity.getName())
+        .ownerId(entity.getOwnerId())
+        .lastMessageContent(entity.getLastMessageContent())
+        .lastActivity(entity.getLastActivityAt())
+        .unreadCount(unreadCount)
+        .build();
+    }
   
 }

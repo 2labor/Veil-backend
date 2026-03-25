@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com._labor.fakecord.domain.dto.ChannelDto;
 import com._labor.fakecord.domain.dto.DirectMessageChannelDto;
+import com._labor.fakecord.domain.dto.GroupChannelDto;
 import com._labor.fakecord.domain.dto.UserProfileFullDto;
 import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.domain.entity.Channel;
@@ -51,7 +52,7 @@ public class ChannelController {
   }
 
   @GetMapping("/me")
-  public ResponseEntity<List<DirectMessageChannelDto>> getMyDirectMessage(
+  public ResponseEntity<List<?>> getMyDirectMessage(
     @RequestParam(defaultValue = "0") int page,
     @RequestParam(defaultValue = "20") int size,
     Principal principal
@@ -59,14 +60,16 @@ public class ChannelController {
     UUID myId = getId(principal);
     var slice = service.getUserDirectMessages(myId, PageRequest.of(page, size));
 
-    List<DirectMessageChannelDto> dtos = slice.getContent().stream().map(channel -> {
-      UUID recipientId = memberService.getRecipientId(channel.getId(), myId);
-
-      UserProfileFullDto profileDto = profileCache.getUserProfile(recipientId);
-
-      UserProfileShort profileShort = profileMapper.toShortDto(profileDto, profileDto.status());
-      
+    List<?> dtos = slice.getContent().stream().map(channel -> {
       int unreadCount = memberService.getUnreadCount(channel.getId(), myId);
+
+      if (channel.getType() == ChannelType.GROUP_DM) {
+        return mapper.toGroupDto(channel, unreadCount);
+      }
+
+      UUID recipientId = memberService.getRecipientId(channel.getId(), myId);
+      UserProfileFullDto profileDto = profileCache.getUserProfile(recipientId);
+      UserProfileShort profileShort = profileMapper.toShortDto(profileDto, profileDto.status());
 
       return mapper.toDirectDto(channel, profileShort, unreadCount);
     })
@@ -84,7 +87,7 @@ public class ChannelController {
   ) {
     UUID creatorId = getId(principal);
     Channel channel = service.createChannel(serverId, creatorId, name, type);
-    return ResponseEntity.ok(mapper.toDto(channel));
+    return ResponseEntity.ok(mapper.toDmDto(channel));
   }
 
   @PostMapping("/dm/{recipientId}")
@@ -101,13 +104,14 @@ public class ChannelController {
   }
 
   @PostMapping("/group")
-  public ResponseEntity<ChannelDto> createDmGroup(
+  public ResponseEntity<GroupChannelDto> createDmGroup(
     @RequestBody List<UUID> participantIds,
+    @RequestParam(required = false) String name,
     Principal principal
   ) {
     UUID creatorId = getId(principal);
-    Channel group = service.createGroupChat(creatorId, participantIds);
-    return ResponseEntity.ok(mapper.toDto(group)); 
+    Channel group = service.createGroupChat(creatorId, participantIds, name);
+    return ResponseEntity.ok(mapper.toGroupDto(group, 0));
   }
 
   @PatchMapping("/{channelId}/name")
@@ -117,17 +121,6 @@ public class ChannelController {
   ) {
     service.renameChannel(channelId, newName);
     return ResponseEntity.noContent().build();
-  }
-
-  @PostMapping("/{channelId}/members")
-  public ResponseEntity<Void> addMembersToGroup(
-    @PathVariable Long channelId,
-    @RequestBody List<UUID> userIds,
-    Principal principal
-  ) {
-    UUID operatorId = getId(principal);
-    service.addMembersToGroup(operatorId, channelId, userIds);
-    return ResponseEntity.ok().build();
   }
 
   @PutMapping("/reorder/{serverId}")
@@ -147,6 +140,16 @@ public class ChannelController {
     UUID operatorId = getId(principal);
     service.deleteChannel(channelId, operatorId);
     return ResponseEntity.noContent().build();
+  }
+
+  @PatchMapping("/{channelId}/transfer-ownership")
+  public ResponseEntity<Void> transferOwnership(
+    @PathVariable Long channelId,
+    @RequestParam UUID newOwnerId,
+    Principal principal
+  ) {
+    memberService.transferOwnership(channelId, getId(principal), newOwnerId);
+    return ResponseEntity.ok().build();
   }
 
   private UUID getId(Principal principal) {

@@ -6,11 +6,15 @@ import java.util.UUID;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com._labor.fakecord.domain.entity.Channel;
 import com._labor.fakecord.domain.entity.ChannelMember;
 import com._labor.fakecord.domain.entity.ChannelMemberId;
+import com._labor.fakecord.domain.enums.ChannelType;
+import com._labor.fakecord.domain.mappper.ChannelMemberMapper;
 import com._labor.fakecord.repository.ChannelMemberRepository;
 import com._labor.fakecord.repository.ChannelRepository;
 import com._labor.fakecord.repository.MessageRepository;
@@ -27,6 +31,7 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
   private final ChannelMemberRepository repository;
   private final ChannelRepository channelRepository;
   private final MessageRepository messageRepository;
+  private final ChannelMemberMapper mapper;
 
   @Override
   @Transactional
@@ -59,15 +64,52 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
 
   @Override
   @Transactional
-  public void removeMember(Long channelId, UUID userId) {
-    log.info("Removing user {} from channel {}", userId, channelId);
-    ChannelMemberId memberId = new ChannelMemberId(channelId, userId);
+  public void leaveMember(Long channelId, UUID userId) {
+    log.info("User {} attempting leave from channel {}", userId, channelId);
 
-    if (!repository.existsById(memberId)) {
-      throw new RuntimeException("Member not found in this channel");
+    Channel channel = channelRepository.findById(channelId)
+      .orElseThrow(() -> new IllegalArgumentException("Channel not found"));
+
+    if (channel.getType() == ChannelType.GROUP_DM && channel.getOwnerId().equals(userId)) {
+      if (repository.countById_ChannelId(channelId) > 1) {
+        throw new RuntimeException("You have to transfer ownership rights before leaving the group!");
+      }
     }
 
-    repository.deleteById(memberId);
+    performRemove(channel, userId);
+    log.info("User {} left channel {}", userId, channelId);
+  }
+
+  @Override
+  @Transactional
+  public void kickMember(Long channelId, UUID targetId, UUID operatorId) {
+    Channel channel = channelRepository.findById(channelId)
+      .orElseThrow(() -> new IllegalArgumentException("Channel not found"));
+
+    if (channel.getType() != ChannelType.GROUP_DM) {
+      throw new IllegalArgumentException("You can apply kick function only to channels with dm-group type");
+    }
+
+    if (!channel.getOwnerId().equals(operatorId)) {
+      throw new RuntimeException("Only owner of group can apply kick function");
+    }
+
+    if (targetId.equals(operatorId)) {
+      throw new RuntimeException("You cannot kick yourself, use leave instead");
+    }
+
+    performRemove(channel, targetId);
+    log.info("Operator {} kicked user {} from channel {}", operatorId, targetId, channelId);
+  }
+
+  private void performRemove(Channel channel, UUID userId) {
+    repository.deleteById(new ChannelMemberId(channel.getId(), userId));
+
+    if (channel.getType() == ChannelType.GROUP_DM) {
+      if (repository.countById_ChannelId(channel.getId()) == 0) {
+        channelRepository.delete(channel);
+      }
+    }
   }
 
   @Override
@@ -105,7 +147,7 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
     }
 
     if (!repository.existsById_ChannelIdAndId_UserId(channelId, operatorId)) {
-        throw new RuntimeException("Access denied: Operator is not a member of this channel");
+      throw new RuntimeException("Access denied: Operator is not a member of this channel");
     }
 
     repository.deleteAllByChannelId(channelId);
@@ -134,16 +176,68 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
   }
 
   @Override
-  public void addMembers(Long channelId, List<UUID> userIds) {
+  @Transactional
+  public void addMembers(UUID operatorId, Long channelId, List<UUID> userIds) {
     log.debug("Adding {} members to channel {}", userIds.size(), channelId);
 
-    List<ChannelMember> members = userIds.stream()
-      .map(userId -> {
-        ChannelMemberId id = new ChannelMemberId(channelId, userId);
-        return ChannelMember.builder().id(id).build();
-      })
-      .toList();
+    Channel channel = channelRepository.findById(channelId)
+      .orElseThrow(() -> new IllegalArgumentException("No channel with given id"));
+    
+    if (channel.getType() == ChannelType.GUILD_TEXT || channel.getType() == ChannelType.GUILD_VOICE) {
+      throw new AccessDeniedException("Cannot manually add members to a guild channel. Manage server members instead.");
+    }
+      
+    if (channel.getType() == ChannelType.DM) {
+      throw new IllegalStateException("Cannot add members to a private DM. Create a group instead.");
+    }
 
-    repository.saveAll(members);
+    if (channel.getType() == ChannelType.GROUP_DM && !isMember(channelId, operatorId)) {
+      throw new AccessDeniedException("You are not a member of this group");
+    }
+
+    List<UUID> uniqueIds = userIds.stream().distinct().toList();
+
+    List<UUID> existingId = repository.findAllUserIdsByChannelIdAndUserIdIn(channelId, uniqueIds);
+
+    List<UUID> newUsers = uniqueIds.stream().filter(
+      id -> !existingId.contains(id)
+    ).toList();
+
+    if(newUsers.isEmpty()) return;
+
+    List<ChannelMember> entities = newUsers.stream().map(
+      userId -> mapper.toEntity(channelId, userId)
+    ).toList();
+
+    repository.saveAll(entities);
   }
+
+    @Override
+    public void transferOwnership(Long channelId, UUID currentOwnerId, UUID newOwnerId) {
+      log.info("Attempting to transfer ownership of channel {} from {} to {}", channelId, currentOwnerId, newOwnerId);
+
+      Channel channel = channelRepository.findById(channelId)
+        .orElseThrow(() -> new IllegalArgumentException("Channel not found!"));
+
+      if (channel.getType() != ChannelType.GROUP_DM) {
+        throw new IllegalArgumentException("Ownership can only be transferred in group chats");
+      }
+
+      if (!channel.getOwnerId().equals(currentOwnerId)) {
+        throw new AccessDeniedException("You have to be owner for using this method");
+      }
+
+      if(!isMember(channelId, newOwnerId)) {
+        throw new IllegalArgumentException("User not contain in this group!");
+      }
+
+      if (currentOwnerId.equals(newOwnerId)) {
+        throw new IllegalArgumentException("You cannot transfer ownership to yourself");
+      }
+
+      channel.setOwnerId(newOwnerId);
+      channelRepository.save(channel);
+
+      log.info("Ownership of channel {} successfully transferred to {}", channelId, newOwnerId);
+    }
 }

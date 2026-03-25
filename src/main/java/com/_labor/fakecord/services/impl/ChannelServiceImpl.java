@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com._labor.fakecord.domain.entity.Channel;
+import com._labor.fakecord.domain.entity.ChannelMember;
+import com._labor.fakecord.domain.entity.ChannelMemberId;
 import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.infrastructure.id.IdGenerator;
 import com._labor.fakecord.repository.ChannelRepository;
@@ -72,7 +74,7 @@ public class ChannelServiceImpl implements ChannelService {
 
   @Override
   @Transactional
-  public Channel createGroupChat(UUID creatorId, List<UUID> participantIds) {
+  public Channel createGroupChat(UUID creatorId, List<UUID> participantIds, String name) {
     log.info("User {} creating group chat with {} people", creatorId, participantIds.size());
 
     Set<UUID> uniqueUsers = new HashSet<>(participantIds);
@@ -82,55 +84,19 @@ public class ChannelServiceImpl implements ChannelService {
     Channel group = Channel.builder()
       .id(channelId)
       .type(ChannelType.GROUP_DM)
-      .name(null)
+      .name(name)
+      .ownerId(creatorId)
       .lastActivityAt(Instant.now())
       .build();
 
     Channel saved = repository.save(group);
 
-    memberService.addMembers(saved.getId(), uniqueUsers.stream().toList());
+    // TODO: Refactor to achive less db queries
+    memberService.addMember(saved.getId(), creatorId);
+
+    memberService.addMembers(creatorId, saved.getId(), uniqueUsers.stream().toList());
 
     return saved;
-  }
-
-  @Override
-  @Transactional
-  public void addMembersToGroup(UUID operatorId, Long channelId, List<UUID> targetUserIds) {
-    log.info("User {} is adding {} users to channel {}", operatorId, targetUserIds.size(), channelId);
-
-    Channel channel = repository.findById(channelId)
-      .orElseThrow(() -> new IllegalArgumentException("Channel not found"));
-
-    if (!memberService.isMember(channelId, operatorId)) {
-      throw new RuntimeException("Access denied: You are not a member of this channel");
-    }
-
-    switch(channel.getType()) {
-      case DM -> {
-        log.info("Forking DM {} into a new Group DM", channelId);
-        List<UUID> currentParticipants = memberService.getMemberIds(channelId);
-        
-        Set<UUID> allParticipants = new HashSet<>(currentParticipants);
-        allParticipants.addAll(targetUserIds);
-        
-        createGroupChat(operatorId, allParticipants.stream().toList());
-      }
-
-      case GROUP_DM -> {
-        List<UUID> currentMembers = memberService.getMemberIds(channelId);
-        List<UUID> finalToAdd = targetUserIds.stream()
-            .distinct()
-            .filter(id -> !currentMembers.contains(id))
-            .toList();
-
-        if (!finalToAdd.isEmpty()) {
-            memberService.addMembers(channelId, finalToAdd);
-            updateLastActivity(channelId);
-        }
-      }
-
-      default -> throw new UnsupportedOperationException("Can only add members to DMs or Group DMs");
-    }
   }
 
   @Override

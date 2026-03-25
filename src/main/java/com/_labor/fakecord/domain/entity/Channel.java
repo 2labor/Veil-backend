@@ -2,6 +2,7 @@ package com._labor.fakecord.domain.entity;
 
 import java.time.Instant;
 import java.util.Objects;
+import java.util.UUID;
 
 import com._labor.fakecord.domain.enums.ChannelType;
 
@@ -40,6 +41,9 @@ public class Channel {
   @Column(name = "position")
   private Integer position;
 
+  @Column(name = "owner_id")
+  private UUID ownerId;
+
   @Column(name = "last_message_id")
   private Long lastMessageId;
 
@@ -53,13 +57,14 @@ public class Channel {
   private Instant createdAt;
 
   @Builder
-  public Channel(Long id, Long serverId, String name, Instant lastActivityAt, ChannelType type, Long lastMessageId, String lastMessageContent) {
+  public Channel(Long id, Long serverId, String name, Instant lastActivityAt, ChannelType type, UUID ownerId, Long lastMessageId, String lastMessageContent) {
     this.id = Objects.requireNonNull(id);
     
     this.serverId = serverId;
     this.name = name;
     this.lastActivityAt = lastActivityAt;
     this.type = type;
+    this.ownerId = ownerId;
     this.lastMessageId = lastMessageId;
     this.lastMessageContent = lastMessageContent;
     this.createdAt = (createdAt != null) ? createdAt : Instant.now();

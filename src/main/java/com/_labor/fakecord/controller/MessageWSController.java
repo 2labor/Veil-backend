@@ -4,8 +4,10 @@ import java.security.Principal;
 import java.util.UUID;
 
 import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
 
 import com._labor.fakecord.domain.dto.MessageRequest;
@@ -32,6 +34,12 @@ public class MessageWSController {
       request.content(),
       request.nonce()
     );
+  }
+
+  @MessageExceptionHandler
+  @SendToUser("/queue/errors")
+  public String handleException(Throwable exception) {
+    return exception.getMessage();
   }
 }
 

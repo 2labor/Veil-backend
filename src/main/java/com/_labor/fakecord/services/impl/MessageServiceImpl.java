@@ -39,6 +39,11 @@ public class MessageServiceImpl implements MessageService{
   public Message sendMessage(Long channelId, UUID authorId, String content, String nonce) {
     log.info("Sending message to channel {} by user {}", channelId, authorId);
 
+     if (repository.existsByNonce(nonce)) {
+      log.warn("Message with nonce {} already exists. Skipping.", nonce);
+      return null;
+    }
+
     if (!memberRepository.existsById_ChannelIdAndId_UserId(channelId, authorId)) {
       log.warn("Access denied for user {} in channel {}", authorId, channelId);
       throw new RuntimeException("You are not a member of this channel");

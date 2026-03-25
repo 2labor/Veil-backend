@@ -15,8 +15,10 @@ public interface ChannelMemberService {
   int getUnreadCount(Long channelId, UUID userId);
   boolean isMember(Long channelId, UUID userId);
   void addMember(Long channelId, UUID userId);
-  void addMembers(Long channelId, List<UUID> userIds);
-  void removeMember(Long channelId, UUID userId);
+  void addMembers(UUID operatorId, Long channelId, List<UUID> userIds);
+  void leaveMember(Long channelId, UUID userId);
+  void kickMember(Long channelId, UUID targetId, UUID operatorId);
+  void transferOwnership(Long channelId, UUID currentOwnerId, UUID newOwnerId);
   void updateLastReadMessage(Long channelId, UUID userId, Long messageId);
   void removeAllMembersFromChannel(Long channelId, UUID operatorId);
 }
