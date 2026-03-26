@@ -22,6 +22,8 @@ import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.enums.UserStatus;
 import com._labor.fakecord.domain.mappper.MessageMapper;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;
+import com._labor.fakecord.security.ratelimit.RateLimitSource;
+import com._labor.fakecord.security.ratelimit.annotation.RateLimited;
 import com._labor.fakecord.services.ChannelMemberService;
 import com._labor.fakecord.services.MessageService;
 import com._labor.fakecord.services.UserProfileCache;
@@ -42,6 +44,12 @@ public class MessageRestController {
   private final UserProfileMapper profileMapper;
 
   @PostMapping
+  @RateLimited(
+    key = "chat_send", 
+    capacity = 5, 
+    refillSeconds = 10, 
+    source = RateLimitSource.AUTHENTICATED
+  )
   public ResponseEntity<MessageDto> sendMessage(
     @PathVariable Long channelId,
     @RequestBody @Valid MessageRequest request,
