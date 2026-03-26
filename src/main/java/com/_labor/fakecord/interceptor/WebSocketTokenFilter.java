@@ -14,6 +14,7 @@ import org.springframework.messaging.Message;
 
 import com._labor.fakecord.security.versions.TokenVersionManager;
 import com._labor.fakecord.services.ChannelMemberService;
+import com._labor.fakecord.services.validation.ChannelAccessValidator;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -22,10 +23,12 @@ import lombok.extern.slf4j.Slf4j;
 public class WebSocketTokenFilter implements ChannelInterceptor {
     private final TokenVersionManager tokenVersionManager;
     private final ChannelMemberService memberService;
+    private final ChannelAccessValidator accessValidator;
 
-    public WebSocketTokenFilter(TokenVersionManager tokenVersionManager, ChannelMemberService memberService) {
+    public WebSocketTokenFilter(TokenVersionManager tokenVersionManager, ChannelMemberService memberService, ChannelAccessValidator accessValidator) {
         this.tokenVersionManager = tokenVersionManager;
         this.memberService = memberService;
+        this.accessValidator = accessValidator;
     }
 
     @Override
@@ -85,16 +88,14 @@ public class WebSocketTokenFilter implements ChannelInterceptor {
 
         if(destination.startsWith("/topic/channels.")) {
             try {
-                String channelIdStr = destination.substring("/topic/channels.".length());
-                Long channelId = Long.parseLong(channelIdStr);
+                Long channelId = Long.parseLong(destination.substring("/topic/channels.".length()));
 
-                String userId = (String) accessor.getSessionAttributes().get("userId");
-                if (userId == null) throw new MessageDeliveryException("UNAUTHORIZED");
+                String userIdStr = (String) accessor.getSessionAttributes().get("userId");
+                if (userIdStr == null) throw new MessageDeliveryException("UNAUTHORIZED");
+                UUID userId = UUID.fromString(userIdStr);
 
-                if (!memberService.isMember(channelId, UUID.fromString(userId))) {
-                    log.warn("User {} tried to subscribe to private channel {}", userId, channelId);
-                    throw new MessageDeliveryException("ACCESS_DENIED_TO_CHANNEL");
-                }
+                accessValidator.accessValidation(channelId, userId);
+
                 log.debug("User {} successfully subscribed to channel {}", userId, channelId);
                 
             } catch (Exception e) {
