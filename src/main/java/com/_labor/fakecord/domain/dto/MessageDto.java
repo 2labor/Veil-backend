@@ -9,5 +9,7 @@ public record MessageDto (
   String content,
   MessageType type,
   UserProfileShort author,
+  String nonce,
+  Instant updatesAt,
   Instant timestamp
 ) {}
