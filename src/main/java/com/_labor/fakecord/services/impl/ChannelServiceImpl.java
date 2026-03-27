@@ -15,14 +15,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com._labor.fakecord.domain.entity.Channel;
-import com._labor.fakecord.domain.entity.ChannelMember;
-import com._labor.fakecord.domain.entity.ChannelMemberId;
 import com._labor.fakecord.domain.enums.ChannelType;
+import com._labor.fakecord.domain.enums.SocketEventType;
+import com._labor.fakecord.domain.enums.UserStatus;
+import com._labor.fakecord.domain.mappper.ChannelMapper;
+import com._labor.fakecord.domain.mappper.UserProfileMapper;
 import com._labor.fakecord.infrastructure.id.IdGenerator;
 import com._labor.fakecord.repository.ChannelRepository;
 import com._labor.fakecord.repository.MessageRepository;
 import com._labor.fakecord.services.ChannelMemberService;
 import com._labor.fakecord.services.ChannelService;
+import com._labor.fakecord.services.MessageBroadcaster;
+import com._labor.fakecord.services.UserProfileCache;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +40,10 @@ public class ChannelServiceImpl implements ChannelService {
   private final MessageRepository messageRepository;
   private final IdGenerator idGenerator;
   private final ChannelMemberService memberService;
+  private final MessageBroadcaster broadcaster;
+  private final ChannelMapper mapper;
+  private final UserProfileCache profileCache;
+  private final UserProfileMapper profileMapper;
 
   @Override
   @Transactional
@@ -68,6 +76,13 @@ public class ChannelServiceImpl implements ChannelService {
       .orElseGet(() -> {
         Channel dm = createChannel(null, creatorId, null, ChannelType.DM);
         memberService.addMember(dm.getId(), recipientId);
+
+        var profile = profileCache.getUserProfile(recipientId);
+        var recipientShort = profileMapper.toShortDto(profile, UserStatus.ONLINE);
+        
+        var dto = mapper.toDirectDto(dm, recipientShort, 0);
+
+        broadcaster.broadcastSystemEvent(dm.getId(), SocketEventType.DM_CREATE, dto);
         return dm;
       });
   }
@@ -95,6 +110,10 @@ public class ChannelServiceImpl implements ChannelService {
     memberService.addMember(saved.getId(), creatorId);
 
     memberService.addMembers(creatorId, saved.getId(), uniqueUsers.stream().toList());
+
+    var dto = mapper.toGroupDto(saved, 0);
+
+    broadcaster.broadcastSystemEvent(saved.getId(), SocketEventType.GROUP_CREATE, dto);
 
     return saved;
   }
