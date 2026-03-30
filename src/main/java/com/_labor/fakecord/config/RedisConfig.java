@@ -13,6 +13,7 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import com._labor.fakecord.infrastructure.outbox.service.impl.CacheEvictReceiver;
+import com._labor.fakecord.infrastructure.outbox.service.impl.ChatEventReceiver;
 
 
 @Configuration
@@ -32,7 +33,7 @@ public class RedisConfig {
   }
 
   @Bean
-  MessageListenerAdapter listenerAdapter(CacheEvictReceiver receiver) {
+  MessageListenerAdapter evictListenerAdapter(CacheEvictReceiver receiver) {
     MessageListenerAdapter adapter = new MessageListenerAdapter(receiver, "handleEvict");
 
     adapter.setSerializer(new GenericJackson2JsonRedisSerializer());
@@ -43,13 +44,22 @@ public class RedisConfig {
   @Bean
   RedisMessageListenerContainer container(
     RedisConnectionFactory connectionFactory,
-    MessageListenerAdapter listenerAdapter
+    MessageListenerAdapter evictListenerAdapter, 
+    MessageListenerAdapter chatListenerAdapter
   ) {
     RedisMessageListenerContainer container = new RedisMessageListenerContainer();
     container.setConnectionFactory(connectionFactory);
-    container.addMessageListener(listenerAdapter, new PatternTopic("cache:evict"));
-    container.setTaskExecutor(Executors.newSingleThreadExecutor());
+    container.addMessageListener(evictListenerAdapter, new PatternTopic("cache:evict"));
+    container.addMessageListener(chatListenerAdapter, new PatternTopic("chat:events"));
+    container.setTaskExecutor(Executors.newFixedThreadPool(4));
     
     return container;
+  }
+
+  @Bean 
+  MessageListenerAdapter chatListenerAdapter(ChatEventReceiver receiver) {
+    MessageListenerAdapter adapter = new MessageListenerAdapter(receiver, "handleEvent");
+    adapter.setSerializer(new GenericJackson2JsonRedisSerializer());
+    return adapter;
   }
 }

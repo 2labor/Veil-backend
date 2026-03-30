@@ -22,20 +22,6 @@ public class MessageWSController {
   
   private final MessageService messageService;
 
-  @MessageMapping("/channels.{channelId}.send")
-  public void handleSendMessage(
-    @DestinationVariable Long channelId,
-    @Payload @Valid MessageRequest request,
-    Principal principal
-  ) {
-    messageService.sendMessage(
-      channelId,
-      UUID.fromString(principal.getName()),
-      request.content(),
-      request.nonce()
-    );
-  }
-
   @MessageExceptionHandler
   @SendToUser("/queue/errors")
   public String handleException(Throwable exception) {

@@ -14,9 +14,9 @@ public class MessageMapperImpl implements MessageMapper {
     if (null == dto) return null;
 
    return Message.builder()
+    .id(dto.id() != null ? Long.parseLong(dto.id()) : null)
     .content(dto.content())
     .type(dto.type())
-    .id(dto.id() != null ? Long.parseLong(dto.id()) : null)
     .build();
   }
 
@@ -31,7 +31,9 @@ public class MessageMapperImpl implements MessageMapper {
       message.getContent(),
       message.getType(),
       authorDto,
-      message.getCreatedAt()
+      message.getNonce(),
+      message.getUpdatedAt().toEpochMilli(),
+      message.getCreatedAt().toEpochMilli()
     );
   }
   

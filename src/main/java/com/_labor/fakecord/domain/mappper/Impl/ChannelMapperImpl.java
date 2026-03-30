@@ -1,5 +1,6 @@
 package com._labor.fakecord.domain.mappper.Impl;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,7 +27,7 @@ public class ChannelMapperImpl implements ChannelMapper {
       entity.getType(),
       entity.getServerId(),
       entity.getLastMessageId(),
-      entity.getLastActivityAt()
+      entity.getLastActivityAt().toEpochMilli()
     );
   }
 
@@ -39,7 +40,7 @@ public class ChannelMapperImpl implements ChannelMapper {
       .serverId(dto.serverId())
       .name(dto.name())
       .type(dto.type())
-      .lastActivityAt(dto.lastActivity())
+      .lastActivityAt(dto.lastActivity() == null ? Instant.ofEpochMilli(dto.lastActivity()) : null)
       .lastMessageId(dto.lastMessageId())
       .build();
   }
@@ -52,7 +53,7 @@ public class ChannelMapperImpl implements ChannelMapper {
       entity.getId(),
       recipient,
       entity.getLastMessageContent(),
-      entity.getLastActivityAt(),
+      entity.getLastActivityAt().toEpochMilli(),
       unreadCount
     );
   }
@@ -75,7 +76,7 @@ public class ChannelMapperImpl implements ChannelMapper {
         .name(entity.getName())
         .ownerId(entity.getOwnerId())
         .lastMessageContent(entity.getLastMessageContent())
-        .lastActivity(entity.getLastActivityAt())
+        .lastActivity(entity.getLastActivityAt().toEpochMilli())
         .unreadCount(unreadCount)
         .build();
     }

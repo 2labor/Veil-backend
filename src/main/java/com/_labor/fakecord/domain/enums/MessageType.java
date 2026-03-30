@@ -8,3 +8,4 @@ public enum MessageType {
   CHANNEL_ICON_CHANGE,
   CALL_START
 }
+  

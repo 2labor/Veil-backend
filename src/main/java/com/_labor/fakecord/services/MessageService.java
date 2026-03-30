@@ -11,13 +11,13 @@ import com._labor.fakecord.domain.enums.MessageType;
 public interface MessageService {
   //Actions
   Message sendMessage(Long channelId, UUID authorId, String content, String nonce);
-  // Message editMessage(Long channelId, UUID authorId, String newContent);
+  Message editMessage(Long messageId, UUID operantId, String newContent);
   void deleteMessage(Long messageId, UUID requestId);
   void purgeChannelHistory(Long channelId, UUID requestId);
   //System
   Message sendSystemMessage(Long channelId, UUID authorId, MessageType type, String metadata);
   // Queries
-  Slice<Message> getLatestMessages(Long channelId, int size);
-  Slice<Message> getMessagesBefore(Long channelId, Long lastMessageId, int size);
-  List<Message> getMessageContent(Long chanelId, Long targetMessageId, int limit);
+  Slice<Message> getLatestMessages(Long channelId, UUID currentUserId,  int size);
+  Slice<Message> getMessagesBefore(Long channelId, UUID currentUserId, Long lastMessageId, int size);
+  List<Message> getMessageContent(Long chanelId,  UUID currentUserId, Long targetMessageId, int limit);
 }
