@@ -32,8 +32,8 @@ public class MessageMapperImpl implements MessageMapper {
       message.getType(),
       authorDto,
       message.getNonce(),
-      message.getUpdatedAt(),
-      message.getCreatedAt() 
+      message.getUpdatedAt().toEpochMilli(),
+      message.getCreatedAt().toEpochMilli()
     );
   }
   

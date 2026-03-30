@@ -1,6 +1,5 @@
 package com._labor.fakecord.domain.dto;
 
-import java.time.Instant;
 import java.util.UUID;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -15,6 +14,6 @@ public record GroupChannelDto(
   String name,
   UUID ownerId, 
   String lastMessageContent,
-  Instant lastActivity,
+  Long lastActivity,
   int unreadCount
 ) {}
