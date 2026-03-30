@@ -47,7 +47,7 @@ public class MessageRestController {
   @RateLimited(
     key = "chat_send", 
     capacity = 5, 
-    refillSeconds = 10, 
+    refillSeconds = 5, 
     source = RateLimitSource.AUTHENTICATED
   )
   public ResponseEntity<MessageDto> sendMessage(

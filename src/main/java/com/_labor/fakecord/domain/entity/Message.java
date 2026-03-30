@@ -66,7 +66,6 @@ public class Message {
     this.nonce = nonce;
 
     this.createdAt = Instant.now();
-    this.updatedAt = this.createdAt;
   }
 
    public void onUpdate() {
