@@ -1,19 +1,15 @@
 package com._labor.fakecord.infrastructure.outbox.service.impl;
 
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import com._labor.fakecord.domain.dto.UserProfileShort;
-import com._labor.fakecord.infrastructure.cache.Dto.CachedSlice;
+import com._labor.fakecord.infrastructure.cache.CacheProvider;
 import com._labor.fakecord.infrastructure.cache.services.CacheVersionService;
 import com._labor.fakecord.infrastructure.outbox.domain.CacheEvictEvent;
 import com._labor.fakecord.infrastructure.outbox.domain.enums.CacheType;
 import com._labor.fakecord.infrastructure.outbox.service.CacheEvictor;
-import com.github.benmanes.caffeine.cache.Cache;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,8 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 public class FriendCacheEvictor implements CacheEvictor {
 
   private final CacheVersionService versionService;
-  private final RedisTemplate<String, Object> redisTemplate;
-    private final Cache<String, CachedSlice<UserProfileShort>> sliceCache;
+  private final CacheProvider cacheProvider;
 
   @Override
   public List<CacheType> support(String name) {
@@ -34,18 +29,14 @@ public class FriendCacheEvictor implements CacheEvictor {
 
   @Override
   public void evict(CacheEvictEvent event) {
-    UUID userId = event.aggregateId();
+    UUID userId = event.aggregateId(); 
+    String namespace = CacheType.FRIENDS.getName();
+    String prefix = CacheType.FRIENDS.getPrefix();
 
-    long newVersion = versionService.incrementVersion(CacheType.FRIENDS.getName(), userId);
+    Long newVersion = versionService.incrementVersion(namespace, userId);
 
-    String pattern = CacheType.FRIENDS.getPrefix() + userId + ":v:" + (newVersion - 1) + ":*";
-    Set<String> oldKeys = redisTemplate.keys(pattern);
-    if (oldKeys != null) redisTemplate.delete(oldKeys);
+    cacheProvider.evictByPrefix(prefix + userId);
 
-    String prefix = CacheType.FRIENDS.getPrefix() + userId;
-    sliceCache.asMap().keySet().removeIf(k -> k.startsWith(prefix));
-
-    log.info("Version incremented to {} and old keys cleared for {}", newVersion, userId);
+    log.info("Friend cache version bumped to {} and data cleared for user: {}", newVersion, userId); 
   }
-  
 }

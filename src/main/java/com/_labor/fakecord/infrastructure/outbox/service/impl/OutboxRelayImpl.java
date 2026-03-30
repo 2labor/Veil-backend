@@ -71,20 +71,29 @@ public class OutboxRelayImpl implements OutboxRelay {
   }
 
   private void processEvent(OutboxEvent event) {
-    handlers.stream()
+    List<OutboxHandler> supportedHandlers = handlers.stream()
       .filter(handler -> handler.supports(event.getType()))
-      .findFirst()
-      .ifPresentOrElse(
-        handler -> {
-          try {
-            handler.handle(event);
-            finalizeEvent(event);
-          } catch (Exception e) {
-            log.error("Failed to process event {} with handler {}: {}", event.getId(), handler.getClass().getSimpleName(), e.getMessage());
-          }
-        }, 
-        () -> log.warn("No suitable handler found for event type: {}", event.getType())
-      );
+      .toList();
+      
+    if (supportedHandlers.isEmpty()) {
+      log.warn("No suitable handler found for event type: {}", event.getType());
+      return;
+    }
+
+    boolean allSuccess = true;
+    for (OutboxHandler handler : supportedHandlers) {
+      try {
+        handler.handle(event);
+      } catch (Exception e) {
+        log.error("Failed to process event {} with handler {}: {}", 
+        event.getId(), handler.getClass().getSimpleName(), e.getMessage());
+        allSuccess = false;
+      }
+    }
+
+    if (allSuccess) {
+      finalizeEvent(event);
+    }
   }
 
   private void finalizeEvent(OutboxEvent event) {

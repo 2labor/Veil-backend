@@ -8,6 +8,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import com._labor.fakecord.domain.dto.UserProfileShort;
+import com._labor.fakecord.infrastructure.cache.CacheProvider;
 import com._labor.fakecord.infrastructure.cache.Dto.CachedSlice;
 import com._labor.fakecord.infrastructure.cache.services.CacheVersionService;
 import com._labor.fakecord.infrastructure.outbox.domain.CacheEvictEvent;
@@ -25,9 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 public class FriendRequestCacheEvictor implements CacheEvictor {
 
   private final CacheVersionService versionService;
-  private final RedisTemplate<String, Object> redisTemplate;
-  private final Cache<String, CachedSlice<UserProfileShort>> sliceCache;
-  private final Cache<String, Long> counterCache;
+  private final CacheProvider cacheProvider;
 
   @Override
   public List<CacheType> support(String name) {
@@ -51,14 +50,11 @@ public class FriendRequestCacheEvictor implements CacheEvictor {
       evictList(userId, CacheType.REQUESTS_INCOMING);
       evictList(userId, CacheType.REQUESTS_ONGOING);
       return;
-    }
+    } 
     
     if (type == CacheType.REQUEST_COUNTER) {
-      if (event.subType().name().contains("INCOMING")) {
-        evictCounter(userId, "incoming");
-      } else if (event.subType().name().contains("OUTGOING")) {
-        evictCounter(userId, "outgoing");
-      }
+      String dir = event.subType().name().contains("INCOMING") ? "incoming" : "outgoing";
+      evictCounter(userId, dir);
     } else {
       CacheType direction = event.subType().name().contains("INCOMING") 
         ? CacheType.REQUESTS_INCOMING 
@@ -69,20 +65,16 @@ public class FriendRequestCacheEvictor implements CacheEvictor {
 
   private void evictCounter(UUID userId, String direction) {
     String cacheKey = CacheType.REQUEST_COUNTER.getPrefix() + direction + ":counter" + userId;
-    redisTemplate.delete(cacheKey);
-    counterCache.invalidate(cacheKey);
+    cacheProvider.evict(cacheKey);
     log.debug("Counter evicted: {}", cacheKey);
   }
 
   private void evictList(UUID userId, CacheType direction) {
     versionService.incrementVersion(direction.getName(), userId);
+
     String prefix = direction.getPrefix() + userId;
+    cacheProvider.evictByPrefix(prefix);
     
-    Set<String> keys = redisTemplate.keys(prefix + "*");
-    if (keys != null && !keys.isEmpty()) {
-      redisTemplate.delete(keys);
-    }
-    sliceCache.asMap().keySet().removeIf(k -> k.startsWith(prefix));
     log.debug("List cache evicted for prefix: {}", prefix);
   }
 

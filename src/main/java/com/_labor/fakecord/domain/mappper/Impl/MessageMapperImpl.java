@@ -32,7 +32,7 @@ public class MessageMapperImpl implements MessageMapper {
       message.getType(),
       authorDto,
       message.getNonce(),
-      message.getUpdatedAt().toEpochMilli(),
+      (message.getUpdatedAt() == null ? null : message.getUpdatedAt().toEpochMilli()),
       message.getCreatedAt().toEpochMilli()
     );
   }
