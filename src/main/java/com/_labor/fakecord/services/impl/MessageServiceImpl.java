@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,9 +18,8 @@ import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.domain.enums.MessageType;
 import com._labor.fakecord.domain.enums.SocketEventType;
-import com._labor.fakecord.domain.mappper.MessageMapper;
 import com._labor.fakecord.infrastructure.id.IdGenerator;
-import com._labor.fakecord.repository.ChannelMemberRepository;
+import com._labor.fakecord.infrastructure.outbox.domain.payload.MessageCreatedPayload;
 import com._labor.fakecord.repository.ChannelRepository;
 import com._labor.fakecord.repository.MessageRepository;
 import com._labor.fakecord.services.MessageBroadcaster;
@@ -41,6 +41,7 @@ public class MessageServiceImpl implements MessageService{
   private final IdGenerator idGenerator;
   private final MessageValidator messageValidator;
   private final ChannelAccessValidator accessValidator;
+  private final KafkaTemplate<String, Object> kafkaTemplate;
 
   @Override
   @Transactional
@@ -56,7 +57,6 @@ public class MessageServiceImpl implements MessageService{
     messageValidator.validate(content);
 
     long messageId = idGenerator.nextId();
-
     Message message = Message.builder()
     .id(messageId)
     .type(MessageType.TEXT)
@@ -65,29 +65,18 @@ public class MessageServiceImpl implements MessageService{
     .content(content)
     .nonce(nonce)
     .build();
-
     
     Message saved = repository.save(message);
+
+    MessageCreatedPayload payload = new MessageCreatedPayload(
+      saved.getId(),
+      saved.getChannelId(),
+      saved.getAuthorId()
+    );
+    kafkaTemplate.send("chat:messages", channelId.toString(), payload);
     broadcaster.broadcastMessageEvent(saved, SocketEventType.MESSAGE_CREATE);
-
-    // TODO: Optimization - Move this to Redis 'Write-Behind' pattern
-    // Currently, we skip synchronous DB update to avoid lock contention
-    // updateChannelMetadata(channelId, saved.getId());
-    channelRepository.findById(channelId).ifPresent(channel -> {
-      channel.setLastMessageId(messageId);
-      channel.setLastActivityAt(Instant.now());
-
-      if (channel.getType() == ChannelType.DM || channel.getType() == ChannelType.GROUP_DM) {
-        String preview = saved.getContent(); 
-        if (preview != null && preview.length() > 100) {
-          preview = preview.substring(0, 97) + "...";
-        }
-        channel.setLastMessageContent(preview);
-      }
-
-      channelRepository.save(channel);
-    });
-
+    
+    updateChannelMetadata(channelId, saved);
     return saved;
   }
 
@@ -213,4 +202,20 @@ public class MessageServiceImpl implements MessageService{
 
     return combined;
   }  
+
+  private void updateChannelMetadata(Long channelId, Message saved) {
+    channelRepository.findById(channelId).ifPresent(channel -> {
+      channel.setLastMessageId(saved.getId());
+      channel.setLastActivityAt(Instant.now());
+
+      if(channel.getType() == ChannelType.DM || channel.getType() == ChannelType.GROUP_DM) {
+        String preview = saved.getContent();
+        if (preview != null && preview.length() > 50) {
+          preview = preview.substring(0, 48) + "...";
+        }
+        channel.setLastMessageContent(preview);
+      }
+      channelRepository.save(channel);
+    });
+  }
 }

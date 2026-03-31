@@ -19,6 +19,7 @@ import com._labor.fakecord.repository.ChannelMemberRepository;
 import com._labor.fakecord.repository.ChannelRepository;
 import com._labor.fakecord.repository.MessageRepository;
 import com._labor.fakecord.services.ChannelMemberService;
+import com._labor.fakecord.services.UnreadCounterService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,7 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
   private final ChannelRepository channelRepository;
   private final MessageRepository messageRepository;
   private final ChannelMemberMapper mapper;
+  private final UnreadCounterService unreadCounterService;
 
   @Override
   @Transactional
@@ -57,6 +59,7 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
   }
 
   @Override
+  @Transactional(readOnly = true)
   public List<UUID> getMemberIds(Long channelId) {
     log.debug("Fetching all member IDs for channel {}", channelId);
     return repository.findAllUserIdsByChannelId(channelId);
@@ -105,6 +108,8 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
   private void performRemove(Channel channel, UUID userId) {
     repository.deleteById(new ChannelMemberId(channel.getId(), userId));
 
+    unreadCounterService.reset(channel.getId(), userId);
+
     if (channel.getType() == ChannelType.GROUP_DM) {
       if (repository.countById_ChannelId(channel.getId()) == 0) {
         channelRepository.delete(channel);
@@ -124,11 +129,12 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
   public void updateLastReadMessage(Long channelId, UUID userId, Long messageId) {
     log.debug("Updating last read message for user {} in channel {} to {}", userId, channelId, messageId);
 
-    ChannelMember member = repository.findById_ChannelIdAndId_UserId(channelId, userId)
-      .orElseThrow(() -> new IllegalArgumentException("Member not found"));
+    int update = repository.updateLastReadIfGreater(channelId, userId, messageId);
 
-    member.setLastReadMessageId(messageId);
-    repository.save(member);
+    if (update > 0) {
+      unreadCounterService.reset(channelId, userId);
+      log.trace("Redis counter reset for user {} in channel {}", userId, channelId);
+    }
   }
 
   @Override
@@ -166,13 +172,23 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
 
   @Override
   public int getUnreadCount(Long channelId, UUID userId) {
-    ChannelMember member = repository.findById_ChannelIdAndId_UserId(channelId, userId)
-      .orElseThrow(() -> new IllegalArgumentException("Member not found"));
+    int counter = unreadCounterService.getCounter(channelId, userId);
 
-    Long lastReadId = member.getLastReadMessageId();
-    if (lastReadId == null) lastReadId = 0L;
+    if (counter == -1) {
+      log.debug("Cache miss for unread count. Calculating from DB for user {} in channel {}", userId, channelId);
 
-    return (int) messageRepository.countByChannelIdAndIdGreaterThan(channelId, lastReadId);
+      ChannelMember member = repository.findById_ChannelIdAndId_UserId(channelId, userId)
+        .orElseThrow(() -> new IllegalArgumentException("Member not found"));
+
+      Long lastReadId = member.getLastReadMessageId();
+      if (lastReadId == null) lastReadId = 0L;
+
+      counter = (int) messageRepository.countByChannelIdAndIdGreaterThan(channelId, lastReadId);
+
+      unreadCounterService.syncSpecific(userId, channelId, counter);
+    }
+
+    return counter;
   }
 
   @Override

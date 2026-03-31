@@ -4,8 +4,8 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.domain.enums.MessageType;
-import com._labor.fakecord.infrastructure.outbox.domain.ChannelMemberEventPayload;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
+import com._labor.fakecord.infrastructure.outbox.domain.payload.ChannelMemberEventPayload;
 import com._labor.fakecord.services.MessageService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
