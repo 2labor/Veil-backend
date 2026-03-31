@@ -23,6 +23,8 @@ public interface ChannelMemberRepository extends JpaRepository<ChannelMember, Ch
 
   Optional<ChannelMember> findById_ChannelIdAndId_UserId(Long channelId, UUID userId);
 
+  List<ChannelMember> findAllById_UserId(UUID userId);
+
   @Query("SELECT cm.id.userId FROM ChannelMember cm " +
     "WHERE cm.id.channelId = :channelId AND cm.id.userId IN :userIds")
   List<UUID> findAllUserIdsByChannelIdAndUserIdIn(
@@ -47,4 +49,11 @@ public interface ChannelMemberRepository extends JpaRepository<ChannelMember, Ch
   @Query("DELETE FROM ChannelMember cm WHERE cm.id.channelId = :channelId")
   void deleteAllByChannelId(@Param("channelId") Long channelId);
 
+  @Modifying
+  @Query("UPDATE ChannelMember cm SET cm.lastReadMessageId = :messageId " +
+    "WHERE cm.id.channelId = :channelId AND cm.id.userId = :userId " +
+    "AND (cm.lastReadMessageId IS NULL OR cm.lastReadMessageId < :messageId)")
+  int updateLastReadIfGreater(@Param("channelId") Long channelId, 
+    @Param("userId") UUID userId, 
+    @Param("messageId") Long messageId);
 }
