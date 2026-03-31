@@ -67,7 +67,18 @@ public class UnreadCounterServiceImpl implements UnreadCounterService{
     @Override
     public int getCounter(Long channelId, UUID userId) {
         Object counter = redisTemplate.opsForHash().get(getRedisKey(userId), channelId.toString());
-        return (counter instanceof Integer i) ? i : 0;
+        if (counter == null) return -1;
+
+        if (counter instanceof Integer i) {
+            return i;
+        }
+
+        try {
+            return Integer.parseInt(counter.toString());
+        } catch (NumberFormatException e) {
+            log.error("Invalid counter format in Redis for user {} and channel {}: {}", userId, channelId, counter);
+            return 0;
+        }
     }
 
     @Override

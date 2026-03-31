@@ -1,10 +1,11 @@
 package com._labor.fakecord.services.impl;
 
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import java.util.Map;
+
 import org.springframework.stereotype.Service;
 
+import com._labor.fakecord.domain.dto.MessageDelete;
 import com._labor.fakecord.domain.dto.MessageDto;
-import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.enums.SocketEventType;
 import com._labor.fakecord.domain.enums.UserStatus;
@@ -38,7 +39,7 @@ public class RedisMessageBroadcaster implements MessageBroadcaster {
   @Override
   public void broadcastDeletion(Long channelId, Long messageId) {
     log.debug("Broadcasting deletion for message {} in channel {}", messageId, channelId);
-    publish(SocketEventType.MESSAGE_DELETE, channelId, messageId);
+    publish(SocketEventType.MESSAGE_DELETE, channelId, new MessageDelete(messageId));
   }
 
   @Override
