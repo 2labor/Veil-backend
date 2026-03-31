@@ -1,4 +1,4 @@
-package com._labor.fakecord.infrastructure.outbox.domain;
+package com._labor.fakecord.infrastructure.outbox.domain.payload;
 
 import java.util.UUID;
 
