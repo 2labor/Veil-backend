@@ -6,12 +6,12 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import com._labor.fakecord.domain.entity.FriendRequest;
-import com._labor.fakecord.infrastructure.outbox.domain.FriendAcceptedPayload;
-import com._labor.fakecord.infrastructure.outbox.domain.FriendRequestPayload;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEvent;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
 import com._labor.fakecord.infrastructure.outbox.domain.RelationshipActionPayload;
 import com._labor.fakecord.infrastructure.outbox.domain.UserBlockPayload;
+import com._labor.fakecord.infrastructure.outbox.domain.payload.FriendAcceptedPayload;
+import com._labor.fakecord.infrastructure.outbox.domain.payload.FriendRequestPayload;
 import com._labor.fakecord.infrastructure.outbox.service.OutboxHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 

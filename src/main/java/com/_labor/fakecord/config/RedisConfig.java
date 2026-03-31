@@ -14,7 +14,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import com._labor.fakecord.infrastructure.outbox.service.impl.CacheEvictReceiver;
 import com._labor.fakecord.infrastructure.outbox.service.impl.ChatEventReceiver;
-
+  
 
 @Configuration
 public class RedisConfig {

@@ -10,7 +10,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.domain.enums.ConnectionProvider;
-import com._labor.fakecord.infrastructure.outbox.domain.ConnectionCreatedPayload;
+import com._labor.fakecord.infrastructure.outbox.domain.payload.ConnectionCreatedPayload;
 import com._labor.fakecord.repository.UserConnectionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 

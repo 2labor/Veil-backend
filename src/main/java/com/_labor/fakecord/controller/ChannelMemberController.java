@@ -70,16 +70,6 @@ public class ChannelMemberController {
     return ResponseEntity.ok().build();
   }
 
-  @PatchMapping("/read/{messageId}")
-  public ResponseEntity<Void> updateReadStatus(
-    @PathVariable Long channelId,
-    @PathVariable Long messageId,
-    Principal principal
-  ) {
-    service.updateLastReadMessage(channelId, getUserId(principal), messageId);
-    return ResponseEntity.noContent().build();
-  }
-
   @DeleteMapping("/leave")
   public ResponseEntity<Void> leaveChannel(
     @PathVariable Long channelId,
