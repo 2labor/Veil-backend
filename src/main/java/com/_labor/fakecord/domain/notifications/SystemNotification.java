@@ -7,6 +7,8 @@ import com._labor.fakecord.domain.enums.NotificationType;
 
 public record SystemNotification<T extends NotificationPayload>(
   UUID notificationId,
+  Long channelId, 
+  Long targetId,
   NotificationType type,
   NotificationPriority priority,
   T data,
@@ -14,12 +16,16 @@ public record SystemNotification<T extends NotificationPayload>(
 ) {
 
   public static <T extends NotificationPayload> SystemNotification<T> of(
+    Long channelId, 
+    Long targetId,
     NotificationType type,
     NotificationPriority priority,
     T data
   ) {
     return new SystemNotification<>(
       UUID.randomUUID(),
+      channelId,
+      targetId,
       type,
       priority,
       data,

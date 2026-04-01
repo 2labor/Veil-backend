@@ -1,19 +1,20 @@
 package com._labor.fakecord.services.impl;
 
-import java.util.Map;
-
 import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.domain.dto.MessageDelete;
 import com._labor.fakecord.domain.dto.MessageDto;
 import com._labor.fakecord.domain.entity.Message;
+import com._labor.fakecord.domain.enums.NotificationPriority;
+import com._labor.fakecord.domain.enums.NotificationType;
 import com._labor.fakecord.domain.enums.SocketEventType;
 import com._labor.fakecord.domain.enums.UserStatus;
-import com._labor.fakecord.domain.events.SocketEvent;
 import com._labor.fakecord.domain.mappper.MessageMapper;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;
-import com._labor.fakecord.infrastructure.messaging.EventPublisher;
+import com._labor.fakecord.domain.notifications.NotificationPayload;
+import com._labor.fakecord.domain.notifications.SystemNotification;
 import com._labor.fakecord.services.MessageBroadcaster;
+import com._labor.fakecord.services.NotificationService;
 import com._labor.fakecord.services.UserProfileCache;
 
 import lombok.RequiredArgsConstructor;
@@ -24,33 +25,71 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class RedisMessageBroadcaster implements MessageBroadcaster {
   
-  private final EventPublisher eventPublisher;
+  private final NotificationService notificationService;
   private final MessageMapper messageMapper;
   private final UserProfileCache profileCache;
   private final UserProfileMapper profileMapper;
 
   @Override
   public void broadcastMessageEvent(Message message, SocketEventType type) {
-    log.debug("Broadcasting message event [{}] for message {}", type, message.getId());
-    MessageDto messageDto = convertToDto(message);
-    publish(type, message.getChannelId(), messageDto);
+    NotificationPriority priority = (type == SocketEventType.MESSAGE_CREATE) 
+      ? NotificationPriority.HIGH : NotificationPriority.LOW;
+
+    broadcastMessageEvent(message, type, priority);
+  }
+
+  public void broadcastMessageEvent(Message message, SocketEventType type, NotificationPriority priority) {
+    log.debug("Broadcasting message event [{}] with priority {}", type, priority);
+
+    MessageDto dto = convertToDto(message);
+
+    SystemNotification<MessageDto> notification = SystemNotification.of(
+      message.getChannelId(),
+      message.getId(),
+      NotificationType.valueOf(type.name()), 
+      priority, 
+      dto
+    );
+    
+    notificationService.sendToChannel(message.getChannelId(), notification);
   }
 
   @Override
   public void broadcastDeletion(Long channelId, Long messageId) {
-    log.debug("Broadcasting deletion for message {} in channel {}", messageId, channelId);
-    publish(SocketEventType.MESSAGE_DELETE, channelId, new MessageDelete(messageId));
+    SystemNotification<MessageDelete> notification = SystemNotification.of(
+      channelId, 
+      messageId, 
+      NotificationType.MESSAGE_DELETE, 
+      NotificationPriority.LOW, 
+      new MessageDelete(messageId)
+    );
+
+    notificationService.sendToChannel(channelId, notification);
   }
 
   @Override
   public void broadcastSystemEvent(Long channelId, SocketEventType type, Object data) {
-    log.debug("Broadcasting system event [{}] for channel {}", type, channelId);
-    publish(type, channelId, data);
+    broadcastSystemEvent(channelId, type, data, NotificationPriority.LOW);
   }
 
-  private void publish(SocketEventType type, Long channelId, Object data) {
-    SocketEvent event = SocketEvent.of(type, channelId, data);
-    eventPublisher.publish("chat:events", event);
+  public void broadcastSystemEvent(Long channelId, SocketEventType type, Object data, NotificationPriority priority) {
+    log.debug("Broadcasting system event [{}] for channel {}", type, channelId);
+
+    if (!(data instanceof NotificationPayload payload)) {
+      log.error("Data for system event must implement NotificationPayload. Got: {}", 
+      data != null ? data.getClass().getSimpleName() : "null");
+      return;
+    }
+
+    SystemNotification<NotificationPayload> notification = SystemNotification.of(
+      channelId,
+      null,
+      NotificationType.valueOf(type.name()),
+      NotificationPriority.LOW,
+      payload
+    );
+
+    notificationService.sendToChannel(channelId, notification);
   }
 
   private MessageDto convertToDto(Message message) {
