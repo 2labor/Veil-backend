@@ -4,7 +4,7 @@ import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-
+  
 import com._labor.fakecord.infrastructure.outbox.domain.EventStatus;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEvent;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
@@ -36,7 +36,7 @@ public class OutboxServiceImpl implements OutboxService {
 
       OutboxEvent event = OutboxEvent.builder()
         .type(type)
-        .aggregateId(aggregateId)
+        .aggregateId(aggregateId.toString())
         .payload(jsonPayload)
         .status(EventStatus.PENDING)
         .retryCount(0)

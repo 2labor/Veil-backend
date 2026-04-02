@@ -38,7 +38,7 @@ public class OutboxEvent {
   private OutboxEventType type; 
 
   @Column(name = "aggregate_id", nullable = false)
-  private UUID aggregateId;
+  private String aggregateId;
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(columnDefinition = "jsonb", nullable = false)
