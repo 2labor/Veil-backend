@@ -12,8 +12,8 @@ import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import com._labor.fakecord.infrastructure.notification.Impl.RedisNotificationReceiver;
 import com._labor.fakecord.infrastructure.outbox.service.impl.CacheEvictReceiver;
-import com._labor.fakecord.infrastructure.outbox.service.impl.ChatEventReceiver;
   
 
 @Configuration
@@ -47,21 +47,17 @@ public class RedisConfig {
   RedisMessageListenerContainer container(
     RedisConnectionFactory connectionFactory,
     MessageListenerAdapter evictListenerAdapter, 
-    MessageListenerAdapter chatListenerAdapter
+    RedisNotificationReceiver notificationReceiver
   ) {
     RedisMessageListenerContainer container = new RedisMessageListenerContainer();
     container.setConnectionFactory(connectionFactory);
-    container.addMessageListener(evictListenerAdapter, new PatternTopic("cache:evict"));
-    container.addMessageListener(chatListenerAdapter, new PatternTopic("chat:events"));
-    container.setTaskExecutor(Executors.newFixedThreadPool(4));
-    
-    return container;
-  }
 
-  @Bean 
-  MessageListenerAdapter chatListenerAdapter(ChatEventReceiver receiver) {
-    MessageListenerAdapter adapter = new MessageListenerAdapter(receiver, "handleEvent");
-    adapter.setSerializer(new GenericJackson2JsonRedisSerializer());
-    return adapter;
+    container.addMessageListener(evictListenerAdapter, new PatternTopic("cache:evict"));
+    
+    container.addMessageListener(notificationReceiver, new PatternTopic("channel:events:*"));
+    container.addMessageListener(notificationReceiver, new PatternTopic("users:notifications:*"));
+
+    container.setTaskExecutor(Executors.newFixedThreadPool(4));
+    return container;
   }
 }

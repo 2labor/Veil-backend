@@ -73,7 +73,7 @@ public class MessageServiceImpl implements MessageService{
       saved.getChannelId(),
       saved.getAuthorId()
     );
-    kafkaTemplate.send("chat:messages", channelId.toString(), payload);
+    kafkaTemplate.send("chat.messages", channelId.toString(), payload);
     broadcaster.broadcastMessageEvent(saved, SocketEventType.MESSAGE_CREATE);
     
     updateChannelMetadata(channelId, saved);

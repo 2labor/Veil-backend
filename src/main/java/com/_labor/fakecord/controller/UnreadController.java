@@ -10,8 +10,10 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com._labor.fakecord.services.ChannelMemberService;
 import com._labor.fakecord.services.UnreadCounterService;
 
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 public class UnreadController {
   
   private final UnreadCounterService service;
+  private final ChannelMemberService channelMemberService;
 
   @GetMapping
   public ResponseEntity<Map<Long, Integer>> getMyCounter(
@@ -33,18 +36,22 @@ public class UnreadController {
     if (counters.isEmpty()) {
        service.syncAllFromDb(userId);
     }
-    
     return ResponseEntity.ok(counters);
   }
 
   @PatchMapping("/{channelId}")
-  public ResponseEntity<Void> resetCounter(
+public ResponseEntity<Void> resetCounter(
     Principal principal, 
-    @PathVariable Long channelId
+    @PathVariable Long channelId,
+    @RequestParam(required = false) Long lastMessageId
   ) {
     UUID userId = getUserId(principal);
+    
+    if (lastMessageId != null) {
+        channelMemberService.updateLastReadMessage(channelId, userId, lastMessageId);
+    }
+    
     service.reset(channelId, userId);
-
     return ResponseEntity.noContent().build();
   }
 
