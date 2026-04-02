@@ -1,4 +1,4 @@
-package com._labor.fakecord.infrastructure.outbox.service.impl;
+package com._labor.fakecord.infrastructure.outbox.service.handler;
 
 import java.util.Set;
 
