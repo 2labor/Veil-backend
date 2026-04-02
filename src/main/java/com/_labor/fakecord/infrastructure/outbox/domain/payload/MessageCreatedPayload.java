@@ -5,5 +5,7 @@ import java.util.UUID;
 public record MessageCreatedPayload(
   Long messageId, 
   Long channelId, 
-  UUID authorId
+  UUID authorId,
+  String authorName,
+  String content
 ) {}

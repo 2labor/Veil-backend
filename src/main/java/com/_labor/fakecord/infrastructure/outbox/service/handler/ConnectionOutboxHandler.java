@@ -1,4 +1,4 @@
-package com._labor.fakecord.infrastructure.outbox.service.impl;
+package com._labor.fakecord.infrastructure.outbox.service.handler;
 
 import java.util.Set;
 
@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEvent;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
-import com._labor.fakecord.infrastructure.outbox.domain.payload.ChannelMemberEventPayload;
+import com._labor.fakecord.infrastructure.outbox.domain.payload.ConnectionCreatedPayload;
 import com._labor.fakecord.infrastructure.outbox.service.OutboxHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -17,18 +17,16 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class ChannelOutboxHandler implements OutboxHandler {
+public class ConnectionOutboxHandler implements OutboxHandler{
 
   private final KafkaTemplate<String, Object> kafkaTemplate;
   private final ObjectMapper objectMapper;
-
-  private static final String TOPIC = "channel-events";
+  
+  private static final String TOPIC = "user-connection-events";
 
   private static final Set<OutboxEventType> SUPPORTED_TYPES = Set.of(
-    OutboxEventType.CHANNEL_CREATED,
-    OutboxEventType.CHANNEL_MEMBER_ADDED,
-    OutboxEventType.CHANNEL_MEMBER_REMOVED,
-    OutboxEventType.CHANNEL_RENAMED
+    OutboxEventType.USER_CONNECTION_CREATED,
+    OutboxEventType.USER_CONNECTION_DELETED
   );
 
   @Override
@@ -39,17 +37,18 @@ public class ChannelOutboxHandler implements OutboxHandler {
   @Override
   public void handle(OutboxEvent event) {
     try {
-      ChannelMemberEventPayload payload = objectMapper.readValue(
-        event.getPayload(),ChannelMemberEventPayload.class
+      ConnectionCreatedPayload payload = objectMapper.readValue(
+        event.getPayload(), 
+        ConnectionCreatedPayload.class
       );
 
       kafkaTemplate.send(TOPIC, event.getAggregateId().toString(), payload);
-      log.info("Channel event {} for channel {} relayed to Kafka", event.getType(), event.getAggregateId());
-    } catch (Exception e) {
-      log.error("Failed to relay channel outbox event {}: {}", event.getId(), e.getMessage());
-      throw new RuntimeException("Failed to relay channel event", e);
-    }
+      
+      log.info("Connection event {} for user {} relayed to Kafka", 
+          event.getType(), event.getAggregateId());
+  } catch (Exception e) {
+      log.error("Failed to deserialize or relay outbox event {}: {}", event.getId(), e.getMessage());
+      throw new RuntimeException("Failed to relay connection event", e);
   }
-  
+  }
 }
-

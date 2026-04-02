@@ -1,4 +1,4 @@
-package com._labor.fakecord.infrastructure.outbox.service.impl;
+package com._labor.fakecord.infrastructure.outbox.service.handler;
 
 import java.util.UUID;
 
@@ -36,7 +36,7 @@ public class CacheEvictOutboxHandler implements OutboxHandler {
 
     try {
       if (event.getType() == OutboxEventType.USER_PROFILE_UPDATED) {
-        publish(event.getAggregateId(), CacheType.USER_PROFILES, CacheSubType.ALL);
+        publish(UUID.fromString(event.getAggregateId()), CacheType.USER_PROFILES, CacheSubType.ALL);
         return;
       }
 
