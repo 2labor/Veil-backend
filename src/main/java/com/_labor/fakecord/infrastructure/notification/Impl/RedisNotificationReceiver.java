@@ -2,6 +2,7 @@ package com._labor.fakecord.infrastructure.notification.Impl;
 
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
@@ -17,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 public class RedisNotificationReceiver implements EventReceiver, MessageListener {
 
   private final SimpMessagingTemplate messageTemplate;
-  private final RedisSerializer<Object> valueSerializer;
+  private final RedisTemplate<String, Object> redisTemplate;
 
   @Override
   public void handleEvent(String topic, Object body) {
@@ -30,7 +31,9 @@ public class RedisNotificationReceiver implements EventReceiver, MessageListener
     switch(category) {
       case "users" -> {
         String userId = parts[parts.length - 1];
+        log.info("convertAndSendToUser userId={}", userId);
         messageTemplate.convertAndSendToUser(userId, "/queue/notifications", body);
+        log.info("convertAndSendToUser DONE");
       }
       case "channel" -> {
         String channelId = parts[parts.length - 1];
@@ -43,10 +46,21 @@ public class RedisNotificationReceiver implements EventReceiver, MessageListener
 
     @Override
     public void onMessage(Message message, byte[] pattern) {
-      String topic = new String(message.getChannel());
-      Object body = valueSerializer.deserialize(message.getBody());
+      try {
+        @SuppressWarnings("unchecked")
+        RedisSerializer<Object> valueSerializer = (RedisSerializer<Object>) redisTemplate.getValueSerializer();
+        
+        String topic = new String(message.getChannel());
+        log.info("RECEIVED REDIS MESSAGE on topic: {}", topic);
+        Object body = valueSerializer.deserialize(message.getBody());
 
-      handleEvent(topic, body);
+        log.info("Deserialized body type: {}", body.getClass().getName()); 
+        log.info("Body content: {}", body); 
+
+        handleEvent(topic, body);
+        } catch (Exception e) {
+          log.error("Error processing Redis message: {}", e.getMessage());
+        }
     }
   
 }

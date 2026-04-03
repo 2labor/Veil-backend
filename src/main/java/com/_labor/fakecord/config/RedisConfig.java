@@ -10,6 +10,7 @@ import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import com._labor.fakecord.infrastructure.notification.Impl.RedisNotificationReceiver;
@@ -20,16 +21,21 @@ import com._labor.fakecord.infrastructure.outbox.service.impl.CacheEvictReceiver
 public class RedisConfig {
   
   @Bean
-  public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
+  public RedisSerializer<String> redisSerializer() {
+    return new StringRedisSerializer();
+  }
+  
+  @Bean
+  public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory, RedisSerializer<String> redisSerializer) {
     RedisTemplate<String, Object> template = new RedisTemplate<>();
     template.setConnectionFactory(connectionFactory);
 
-    template.setKeySerializer(new StringRedisSerializer());
+    template.setKeySerializer(redisSerializer);
 
     GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer();
     template.setValueSerializer(serializer);
     template.setHashValueSerializer(serializer);
-    template.setHashKeySerializer(new StringRedisSerializer());
+    template.setHashKeySerializer(redisSerializer);
 
     return template;
   }
