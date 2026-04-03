@@ -11,19 +11,19 @@ import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
+import com._labor.fakecord.infrastructure.presence.PresenceService;
 import com._labor.fakecord.services.UserStatusService;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class PresenceInterceptor implements ChannelInterceptor {
 
   private final UserStatusService statusService;
-
-  public PresenceInterceptor(UserStatusService statusService) {
-    this.statusService = statusService;
-  }
+  private final PresenceService presenceService;
 
   @Override
   public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -33,14 +33,33 @@ public class PresenceInterceptor implements ChannelInterceptor {
 
     StompCommand cmd = accessor.getCommand();
 
-    String userId = getUserId(accessor);
+    String userIdSrt = getUserId(accessor);
+    if (userIdSrt == null) return message;
+    UUID userId = UUID.fromString(userIdSrt);
 
     if (userId != null) {
       switch (cmd) {
         case CONNECT -> {
-          statusService.setOnline(UUID.fromString(userId));
+          statusService.setOnline(userId);
           log.debug("Presence ONLINE: user={} cmd={}", userId, cmd);
         }
+
+        case SUBSCRIBE -> {
+          String destination = accessor.getDestination();
+          handleChannelSubscription(userId, destination);
+        }
+
+        case UNSUBSCRIBE -> {
+          presenceService.leaveChannel(userId);
+          log.debug("User {} stopped watching channel", userId);
+        }
+
+        case DISCONNECT -> {
+          statusService.setOffline(userId); 
+          presenceService.leaveChannel(userId);
+          log.debug("User {} went OFFLINE", userId);
+        }
+
         default -> {}
       }
     } else {
@@ -61,6 +80,20 @@ public class PresenceInterceptor implements ChannelInterceptor {
     }
 
     return message;
+  }
+
+  private void handleChannelSubscription(UUID userId, String destination) {
+    if (destination != null && destination.startsWith("/topic/channel.")) {
+      try {
+          String channelIdStr = destination.substring("/topic/channel.".length());
+          Long channelId = Long.valueOf(channelIdStr);
+
+          presenceService.enterChannel(userId, channelId);
+          log.debug("User {} is now WATCHING channel {}", userId, channelId);
+      } catch (Exception e) {
+        log.warn("Presence: invalid channel format in destination: {}", destination);
+      }
+    }
   }
 
   private String getUserId(StompHeaderAccessor accessor) {

@@ -112,35 +112,31 @@ public class UnreadCounterServiceImpl implements UnreadCounterService{
     @Override
     public void syncSpecific(UUID userId, Long channelId, int counter) {
         String key = getRedisKey(userId);
-
-        redisTemplate.opsForHash().put(key, channelId.toString(), String.valueOf(counter));
+        redisTemplate.opsForHash().put(key, channelId.toString(), counter); 
     }
 
-    
     @Override
     public void syncAllFromDb(UUID userId) {
         log.info("Starting full unread count synchronization for user {}", userId);
 
         List<ChannelMember> memberships = memberRepository.findAllById_UserId(userId);
-
         String redisKey = getRedisKey(userId);
 
         for (ChannelMember member : memberships) {
             Long channelId = member.getId().getChannelId();
             Long lastReadId = member.getLastReadMessageId();
-
             Long startId = (lastReadId != null) ? lastReadId : 0L;
 
             long counter = repository.countByChannelIdAndIdGreaterThan(channelId, startId);
 
             if (counter > 0) {
-                redisTemplate.opsForHash().put(redisKey, channelId.toString(), String.valueOf(counter));
+                redisTemplate.opsForHash().put(redisKey, channelId.toString(), (int) counter); 
             } else {
                 redisTemplate.opsForHash().delete(redisKey, channelId.toString());
-            }  
+            }
         }
         log.info("Synchronization completed for user {}. Processed {} channels.", userId, memberships.size());
-    }  
+    }
     
     private String getRedisKey(UUID userId) {
         return UNREAD_KEY_PREFIX + userId;

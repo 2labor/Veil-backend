@@ -16,16 +16,21 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com._labor.fakecord.domain.entity.Channel;
 import com._labor.fakecord.domain.enums.ChannelType;
+import com._labor.fakecord.domain.enums.NotificationPriority;
+import com._labor.fakecord.domain.enums.NotificationType;
 import com._labor.fakecord.domain.enums.SocketEventType;
 import com._labor.fakecord.domain.enums.UserStatus;
 import com._labor.fakecord.domain.mappper.ChannelMapper;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;
+import com._labor.fakecord.domain.notifications.SystemNotification;
 import com._labor.fakecord.infrastructure.id.IdGenerator;
+import com._labor.fakecord.infrastructure.outbox.domain.payload.ChannelCreatedPayload;
 import com._labor.fakecord.repository.ChannelRepository;
 import com._labor.fakecord.repository.MessageRepository;
 import com._labor.fakecord.services.ChannelMemberService;
 import com._labor.fakecord.services.ChannelService;
 import com._labor.fakecord.services.MessageBroadcaster;
+import com._labor.fakecord.services.NotificationService;
 import com._labor.fakecord.services.UserProfileCache;
 
 import lombok.RequiredArgsConstructor;
@@ -40,7 +45,7 @@ public class ChannelServiceImpl implements ChannelService {
   private final MessageRepository messageRepository;
   private final IdGenerator idGenerator;
   private final ChannelMemberService memberService;
-  private final MessageBroadcaster broadcaster;
+  private final NotificationService notificationService;
   private final ChannelMapper mapper;
   private final UserProfileCache profileCache;
   private final UserProfileMapper profileMapper;
@@ -77,12 +82,15 @@ public class ChannelServiceImpl implements ChannelService {
         Channel dm = createChannel(null, creatorId, null, ChannelType.DM);
         memberService.addMember(dm.getId(), recipientId);
 
-        var profile = profileCache.getUserProfile(recipientId);
-        var recipientShort = profileMapper.toShortDto(profile, UserStatus.ONLINE);
-        
-        var dto = mapper.toDirectDto(dm, recipientShort, 0);
+        SystemNotification<ChannelCreatedPayload> notification = SystemNotification.of(
+          dm.getId(),
+          null,
+          NotificationType.DM_CREATE,
+          NotificationPriority.HIGH,
+          new ChannelCreatedPayload(dm.getId(), creatorId, ChannelType.DM)
+        );
 
-        broadcaster.broadcastSystemEvent(dm.getId(), SocketEventType.DM_CREATE, dto);
+        notificationService.sendToUser(recipientId, notification);
         return dm;
       });
   }
@@ -111,9 +119,17 @@ public class ChannelServiceImpl implements ChannelService {
 
     memberService.addMembers(creatorId, saved.getId(), uniqueUsers.stream().toList());
 
-    var dto = mapper.toGroupDto(saved, 0);
+    SystemNotification<ChannelCreatedPayload> notification = SystemNotification.of(
+      saved.getId(),
+      null,
+      NotificationType.GROUP_CREATE,
+      NotificationPriority.HIGH,
+      new ChannelCreatedPayload(saved.getId(), creatorId, ChannelType.GROUP_DM)
+    );
 
-    broadcaster.broadcastSystemEvent(saved.getId(), SocketEventType.GROUP_CREATE, dto);
+    uniqueUsers.stream()
+      .filter(userId -> !userId.equals(creatorId))
+      .forEach(userId -> notificationService.sendToUser(userId, notification));
 
     return saved;
   }

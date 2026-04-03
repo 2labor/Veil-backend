@@ -38,7 +38,6 @@ import lombok.RequiredArgsConstructor;
 public class MessageRestController {
 
   private final MessageService messageService;
-  private final ChannelMemberService memberService;
   private final MessageMapper messageMapper;
   private final UserProfileCache profileCache;
   private final UserProfileMapper profileMapper;
