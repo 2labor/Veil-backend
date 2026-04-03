@@ -24,6 +24,7 @@ import com._labor.fakecord.repository.ChannelRepository;
 import com._labor.fakecord.repository.MessageRepository;
 import com._labor.fakecord.services.MessageBroadcaster;
 import com._labor.fakecord.services.MessageService;
+import com._labor.fakecord.services.UserProfileCache;
 import com._labor.fakecord.services.validation.ChannelAccessValidator;
 import com._labor.fakecord.services.validation.MessageValidator;
 
@@ -42,6 +43,7 @@ public class MessageServiceImpl implements MessageService{
   private final MessageValidator messageValidator;
   private final ChannelAccessValidator accessValidator;
   private final KafkaTemplate<String, Object> kafkaTemplate;
+  private final UserProfileCache profileCache;
 
   @Override
   @Transactional
@@ -68,11 +70,18 @@ public class MessageServiceImpl implements MessageService{
     
     Message saved = repository.save(message);
 
+    String authorName = profileCache.getUserProfile(authorId).displayName();
+
     MessageCreatedPayload payload = new MessageCreatedPayload(
       saved.getId(),
       saved.getChannelId(),
-      saved.getAuthorId()
+      saved.getAuthorId(),
+      authorName,
+      saved.getContent(),
+      null,
+      null
     );
+
     kafkaTemplate.send("chat.messages", channelId.toString(), payload);
     broadcaster.broadcastMessageEvent(saved, SocketEventType.MESSAGE_CREATE);
     

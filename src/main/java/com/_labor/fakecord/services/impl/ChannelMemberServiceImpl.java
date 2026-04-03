@@ -52,7 +52,7 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
     }
 
     ChannelMember member = ChannelMember.builder()
-      .id(memberId)
+      .id(memberId) 
       .build();
 
     repository.save(member);
