@@ -53,5 +53,11 @@ public class RedisUserStatusService implements UserStatusService {
     String val = redisTemplate.opsForValue().get(STATUS_KEY_PREFIX + userId);
     return (val != null) ? Integer.parseInt(val) : -1;
   }
+
+  @Override
+  public void touch(UUID userId) {
+    String cacheKey = STATUS_KEY_PREFIX + userId;
+    redisTemplate.expire(cacheKey, TTL_DEFAULT);
+  }
     
 }

@@ -8,4 +8,5 @@ public interface UserStatusService {
   void setOffline(UUID userId);
   boolean isOnline(UUID userId);
   int getMask(UUID userId);
+  void touch(UUID userId);
 }
