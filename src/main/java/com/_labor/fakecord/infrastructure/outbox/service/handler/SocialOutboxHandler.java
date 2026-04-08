@@ -5,7 +5,6 @@ import java.util.Set;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-import com._labor.fakecord.domain.entity.FriendRequest;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEvent;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
 import com._labor.fakecord.infrastructure.outbox.domain.RelationshipActionPayload;

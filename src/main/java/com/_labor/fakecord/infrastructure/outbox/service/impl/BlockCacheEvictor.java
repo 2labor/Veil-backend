@@ -10,6 +10,7 @@ import com._labor.fakecord.infrastructure.cache.services.CacheVersionService;
 import com._labor.fakecord.infrastructure.outbox.domain.CacheEvictEvent;
 import com._labor.fakecord.infrastructure.outbox.domain.enums.CacheType;
 import com._labor.fakecord.infrastructure.outbox.service.CacheEvictor;
+import com._labor.fakecord.infrastructure.repository.SocialCacheRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ public class BlockCacheEvictor implements CacheEvictor{
 
   private final CacheVersionService versionService;
   private final CacheProvider cacheProvider;
+  private final SocialCacheRepository cacheRepository;
 
   @Override
   public List<CacheType> support(String name) {
@@ -36,6 +38,8 @@ public class BlockCacheEvictor implements CacheEvictor{
   public void evict(CacheEvictEvent event) {
     UUID userId = event.aggregateId();
     String uId = userId.toString();
+
+    cacheRepository.evict(userId);
 
     versionService.incrementVersion(CacheType.BLOCKS.getName(), userId);
     versionService.incrementVersion(CacheType.BLOCKED_LIST.getName(), userId);
