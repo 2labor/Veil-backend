@@ -1,6 +1,8 @@
 package com._labor.fakecord.config;
 
 
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.context.annotation.Bean;
@@ -33,6 +35,14 @@ public class CacheConfig {
   public Cache<String, Long> versionLocalCache() {
     return Caffeine.newBuilder()
       .expireAfterWrite(1, TimeUnit.MINUTES)
+      .maximumSize(10000)
+      .build();
+  }
+
+  @Bean(name = "socialBlockCache")
+  public Cache<UUID, Set<UUID>> socialCache() {
+    return Caffeine.newBuilder()
+      .expireAfterWrite(5, TimeUnit.MINUTES)
       .maximumSize(10000)
       .build();
   }
