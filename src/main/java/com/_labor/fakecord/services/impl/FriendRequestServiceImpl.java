@@ -14,8 +14,6 @@ import com._labor.fakecord.domain.enums.RequestSource;
 import com._labor.fakecord.domain.enums.RequestStatus;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
 import com._labor.fakecord.infrastructure.outbox.domain.RelationshipActionPayload;
-import com._labor.fakecord.infrastructure.outbox.domain.payload.FriendAcceptedPayload;
-import com._labor.fakecord.infrastructure.outbox.domain.payload.FriendRequestPayload;
 import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com._labor.fakecord.repository.FriendRequestRepository;
 import com._labor.fakecord.repository.UserRepository;
@@ -156,3 +154,4 @@ public class FriendRequestServiceImpl implements FriendRequestCommandService, Fr
     return repository.countOutgoingRequests(userId);
   }
 }
+
