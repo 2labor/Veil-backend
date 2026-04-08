@@ -1,8 +1,8 @@
 package com._labor.fakecord.infrastructure.cache.services.Impl;
 
-import java.time.Duration;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -10,11 +10,10 @@ import org.springframework.data.domain.SliceImpl;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import org.springframework.beans.factory.annotation.Value;
-
 import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.infrastructure.cache.Dto.CachedSlice;
 import com._labor.fakecord.infrastructure.cache.services.CacheVersionService;
+import com._labor.fakecord.infrastructure.repository.SocialCacheRepository;
 import com._labor.fakecord.services.UserBlockService;
 import com.github.benmanes.caffeine.cache.Cache;
 
@@ -31,6 +30,7 @@ public class CachedUserBlockServiceImpl implements UserBlockService {
   private final Cache<String, Object> localCache;
   private final UserBlockService delegate;
   private final CacheVersionService versionService;
+  private final SocialCacheRepository cacheRepository;
 
   @Value("${fakecord.friends-block.duration-minutes}")
   private long ttlRedis;
@@ -55,26 +55,10 @@ public class CachedUserBlockServiceImpl implements UserBlockService {
 
   @Override
   public boolean isBlocked(UUID actorId, UUID targetId) {
-    long version = versionService.getVersion("blocks", actorId);
-    String cacheKey = String.format("block:%s:target:%s:v:%d", actorId, targetId, version);
-
-    Boolean cached = (Boolean) localCache.getIfPresent(cacheKey);
-    if (cached != null) {
-      return cached;
-    }
-
-    Boolean redisCache = (Boolean) redisTemplate.opsForValue().get(cacheKey);
-    if (redisCache != null) {
-      return redisCache;
-    }
-
-    log.debug("Cache miss for isBlocked(actor={}, target={}). Fetching from DB.", actorId, targetId);
-    Boolean db = delegate.isBlocked(actorId, targetId);
-
-    redisTemplate.opsForValue().set(cacheKey, db, Duration.ofMinutes(ttlRedis));
-    localCache.put(cacheKey, db);
-
-    return db;
+    return cacheRepository.isBlocked(actorId, targetId)
+      .orElseGet(() -> {
+        return delegate.isBlocked(actorId, targetId);
+      });
   }
 
   @Override
@@ -84,25 +68,7 @@ public class CachedUserBlockServiceImpl implements UserBlockService {
 
   @Override
   public boolean isBlockedBy(UUID targetId, UUID actorId) {
-    long version = versionService.getVersion("blocks", targetId);
-    String cacheKey = String.format("blocked_by:%s:from:%s:v:%d", targetId, actorId, version);
-
-    Boolean local = (Boolean) localCache.getIfPresent(cacheKey);
-    if (local != null) {
-      return local;
-    }
-
-    Boolean redisCache = (Boolean) redisTemplate.opsForValue().get(cacheKey);
-    if (redisCache != null) {
-      return redisCache;
-    }
-
-    log.debug("Cache miss for getBlockedIds(actor={}, target={}). Fetching from DB.", actorId, targetId);
-    boolean db = delegate.isBlockedBy(targetId, actorId);
-    redisTemplate.opsForValue().set(cacheKey, db,ttlRedis);
-    localCache.put(cacheKey, db);
-
-    return db;
+    return isBlocked(targetId, actorId);
   }
 
   @Override

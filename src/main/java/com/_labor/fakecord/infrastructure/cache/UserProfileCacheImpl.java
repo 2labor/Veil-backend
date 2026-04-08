@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import com._labor.fakecord.domain.dto.UserProfileFullDto;
 import com._labor.fakecord.domain.enums.UserStatus;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;
+import com._labor.fakecord.infrastructure.presence.PresenceMask;
 import com._labor.fakecord.repository.UserConnectionRepository;
 import com._labor.fakecord.repository.UserProfileRepository;
 import com._labor.fakecord.services.UserProfileCache;
@@ -39,9 +40,9 @@ public class UserProfileCacheImpl implements UserProfileCache {
       () -> fetchFromDb(userId)
     );
 
-    boolean isOnline = statusService.isOnline(userId);
-    UserStatus effective = calculateEffective(isOnline, staticProfile.statusPreference());
-
+    int mask = statusService.getMask(userId);
+    UserStatus effective = PresenceMask.getEffectiveStatus(mask);
+    
     return staticProfile.toBuilder()
       .status(effective)
       .statusPreference(effective == UserStatus.OFFLINE ? UserStatus.OFFLINE : staticProfile.statusPreference())
@@ -60,18 +61,6 @@ public class UserProfileCacheImpl implements UserProfileCache {
         return mapper.toFullDto(entity, UserStatus.OFFLINE, conns);
       })
       .orElseGet(() -> createNegativeProfile(userId));
-  }
-
-  private UserStatus calculateEffective(boolean isOnline, UserStatus preference) {
-    if (!isOnline) {
-      return UserStatus.OFFLINE;
-    }
-
-    if (preference == UserStatus.INVISIBLE) {
-      return UserStatus.OFFLINE;
-    }
-
-    return (null != preference) ? preference : UserStatus.ONLINE;
   }
 
   private UserProfileFullDto createNegativeProfile(UUID userId) {

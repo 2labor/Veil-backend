@@ -1,5 +1,6 @@
 package com._labor.fakecord.services.impl;
 
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -14,8 +15,8 @@ import com._labor.fakecord.domain.events.UserBlockedEvent;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
 import com._labor.fakecord.infrastructure.outbox.domain.RelationshipActionPayload;
 import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
+import com._labor.fakecord.infrastructure.repository.SocialCacheRepository;
 import com._labor.fakecord.repository.UserBlockRepository;
-import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.services.UserBlockService;
 
 import jakarta.transaction.Transactional;
@@ -30,7 +31,7 @@ public class UserBlockServiceImpl implements  UserBlockService{
   private final UserBlockRepository repository;
   private final OutboxService outboxService;
   private final ApplicationEventPublisher eventPublisher;
-  private final UserRepository userRepository;
+  private final SocialCacheRepository cacheRepository;
 
   @Override
   @Transactional
@@ -80,7 +81,16 @@ public class UserBlockServiceImpl implements  UserBlockService{
 
   @Override
   public boolean isBlocked(UUID actorId, UUID targetId) {
-    return repository.existsByUserIdAndTargetId(actorId, targetId);
+    return cacheRepository.isBlocked(actorId, targetId)
+      .orElseGet(() -> {
+        log.info("Cache miss for blocks of user {}. Fetching from DB and warming up cache.", actorId);
+
+        Set<UUID> blockedIds = repository.findAllBlockedTargetIds(actorId);
+        
+        cacheRepository.fillBlockedCache(actorId, blockedIds);
+
+        return blockedIds.contains(targetId);
+      });
   }
 
   @Override
@@ -90,7 +100,7 @@ public class UserBlockServiceImpl implements  UserBlockService{
 
   @Override
   public boolean isBlockedBy(UUID targetId, UUID actorId) {
-    return repository.existsByUserIdAndTargetId(targetId, actorId);
+    return isBlocked(targetId, actorId);
   }
   
   @Override

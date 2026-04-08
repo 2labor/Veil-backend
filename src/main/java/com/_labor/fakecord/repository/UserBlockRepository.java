@@ -1,5 +1,6 @@
 package com._labor.fakecord.repository;
 
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.domain.Pageable;
@@ -9,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.domain.entity.UserBlock;
+
 import org.springframework.data.repository.query.Param;
 
 public interface UserBlockRepository extends JpaRepository<UserBlock, UUID> {
@@ -19,6 +21,9 @@ public interface UserBlockRepository extends JpaRepository<UserBlock, UUID> {
 
   @Query("SELECT ub.target.id FROM UserBlock ub WHERE ub.user.id = :userId")
   Slice<UUID> findBlockedIdsByUserId(@Param("userId") UUID userId, Pageable pageable);
+
+  @Query("SELECT ub.target.id FROM UserBlock ub WHERE ub.user.id = :userId")
+  Set<UUID> findAllBlockedTargetIds(@Param("userId") UUID userId);
 
   void deleteByUserIdAndTargetId(UUID userId, UUID targetId);
 

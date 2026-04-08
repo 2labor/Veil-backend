@@ -17,7 +17,6 @@ import com._labor.fakecord.domain.enums.RelationshipStatus;
 import com._labor.fakecord.infrastructure.cache.Dto.CachedSlice;
 import com._labor.fakecord.infrastructure.cache.services.CacheVersionService;
 import com._labor.fakecord.services.RelationshipQueryService;
-import com._labor.fakecord.services.UserBlockService;
 import com._labor.fakecord.services.impl.RelationshipServiceImpl;
 import com.github.benmanes.caffeine.cache.Cache;
 
