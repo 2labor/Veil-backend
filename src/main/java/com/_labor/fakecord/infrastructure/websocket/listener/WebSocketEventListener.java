@@ -8,27 +8,28 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
-import com._labor.fakecord.services.impl.PresenceService;
+import com._labor.fakecord.infrastructure.presence.PresenceService;
+import com._labor.fakecord.services.UserStatusService;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
+@RequiredArgsConstructor
 @Slf4j
 public class WebSocketEventListener {
   
+  private final UserStatusService statusService;
   private final PresenceService presenceService;
-
-  public WebSocketEventListener (PresenceService presenceService) {
-    this.presenceService = presenceService;
-  }
 
   @EventListener
   public void handleWebSocketConnectListener(SessionConnectEvent event) {
     StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
     UUID userId = UUID.fromString(getUserId(accessor)); 
 
-    if (null != userId) {
-      presenceService.processUserOnline(userId);
+    if (userId != null) {
+      log.debug("WebSocket Session Connect: user {}", userId);
+      statusService.setOnline(userId); 
     }
   }
 
@@ -38,7 +39,10 @@ public class WebSocketEventListener {
     UUID userId = UUID.fromString(getUserId(accessor));
 
     if (userId != null) {
-      presenceService.processUserOffline(userId);
+      log.debug("WebSocket Session Disconnect: user {}", userId);
+      
+      statusService.setOffline(userId);
+      presenceService.leaveChannel(userId);
     }
   }
 
