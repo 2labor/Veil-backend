@@ -37,18 +37,14 @@ public class BlockCacheEvictor implements CacheEvictor{
   @Override
   public void evict(CacheEvictEvent event) {
     UUID userId = event.aggregateId();
-    String uId = userId.toString();
-
+    
     cacheRepository.evict(userId);
 
-    versionService.incrementVersion(CacheType.BLOCKS.getName(), userId);
     versionService.incrementVersion(CacheType.BLOCKED_LIST.getName(), userId);
+    cacheProvider.evictByPrefix(CacheType.BLOCKED_LIST.getPrefix() + userId);
+    cacheProvider.evictByPrefix(CacheType.BLOCKED_BY.getPrefix() + userId);
 
-    cacheProvider.evictByPrefix(CacheType.BLOCKS.getPrefix() + uId);
-    cacheProvider.evictByPrefix(CacheType.BLOCKED_BY.getPrefix() + uId);
-    cacheProvider.evictByPrefix(CacheType.BLOCKED_LIST.getPrefix() + uId);
-
-    log.info("Block-related caches cleared safely for user: {}", userId);
+    log.info("Block-related caches cleared: Set invalidated, List version incremented for user: {}", userId);
   }
 
 }

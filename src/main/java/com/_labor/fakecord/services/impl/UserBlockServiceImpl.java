@@ -14,6 +14,7 @@ import com._labor.fakecord.domain.entity.UserBlock;
 import com._labor.fakecord.domain.events.UserBlockedEvent;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
 import com._labor.fakecord.infrastructure.outbox.domain.RelationshipActionPayload;
+import com._labor.fakecord.infrastructure.outbox.domain.UserBlockPayload;
 import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com._labor.fakecord.infrastructure.repository.SocialCacheRepository;
 import com._labor.fakecord.repository.UserBlockRepository;
@@ -45,6 +46,7 @@ public class UserBlockServiceImpl implements  UserBlockService{
 
     if (repository.existsByUserIdAndTargetId(actorId, targetId)) {
       log.info("User {} is already blocked by {}", targetId, actorId);
+      outboxService.publish(actorId, OutboxEventType.SOCIAL_USER_BLOCKED, new UserBlockPayload(actorId, targetId, "Blocked"));
       return;
     }
 
@@ -81,16 +83,7 @@ public class UserBlockServiceImpl implements  UserBlockService{
 
   @Override
   public boolean isBlocked(UUID actorId, UUID targetId) {
-    return cacheRepository.isBlocked(actorId, targetId)
-      .orElseGet(() -> {
-        log.info("Cache miss for blocks of user {}. Fetching from DB and warming up cache.", actorId);
-
-        Set<UUID> blockedIds = repository.findAllBlockedTargetIds(actorId);
-        
-        cacheRepository.fillBlockedCache(actorId, blockedIds);
-
-        return blockedIds.contains(targetId);
-      });
+    return repository.existsByUserIdAndTargetId(actorId, targetId);
   }
 
   @Override

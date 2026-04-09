@@ -2,7 +2,7 @@ package com._labor.fakecord.infrastructure.outbox.domain.enums;
 
 public enum CacheType {
   FRIENDS("friends", "friends:"),
-  BLOCKS("blocks", "block:"),
+  BLOCKS("blocks", "social:blocks:"),
   BLOCKED_BY("blocked_by", "blocked_by:"),
   BLOCKED_LIST("blocked_list", "blocked_list:"),
   REQUESTS_INCOMING("requests-incoming", "requests-incoming:"),

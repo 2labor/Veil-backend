@@ -8,7 +8,7 @@ public class PresenceMask {
 
   public static int createMask(UserStatus status, boolean invisible) {
     int mask = status.getCode() & STATUS_BITS;
-    if (invisible) {
+    if (invisible) {  
       mask |= INVISIBLE_BIT;
     }
     return mask;

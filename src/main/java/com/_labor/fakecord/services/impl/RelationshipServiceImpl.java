@@ -84,7 +84,7 @@ public class RelationshipServiceImpl implements RelationshipCommandService, Rela
   @Transactional(readOnly = true)
   public RelationshipStatus getRelationshipStatus(UUID userA, UUID userB) {
     if (blockService.isBlocked(userA, userB)) {
-      return RelationshipStatus.BLOCKED;
+        return RelationshipStatus.BLOCKED;
     }
 
     var relationship = repository.findByUserIdAndTargetId(userA, userB);
