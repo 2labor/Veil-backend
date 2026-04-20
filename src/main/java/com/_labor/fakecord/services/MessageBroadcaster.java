@@ -8,3 +8,4 @@ public interface MessageBroadcaster {
   void broadcastDeletion(Long channelId, Long messageId);
   void broadcastSystemEvent(Long channelId, SocketEventType type, Object data);
 }
+  

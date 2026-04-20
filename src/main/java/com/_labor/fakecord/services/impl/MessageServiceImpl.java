@@ -44,6 +44,7 @@ public class MessageServiceImpl implements MessageService{
   private final ChannelAccessValidator accessValidator;
   private final KafkaTemplate<String, Object> kafkaTemplate;
   private final UserProfileCache profileCache;
+  
 
   @Override
   @Transactional
