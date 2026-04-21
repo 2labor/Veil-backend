@@ -1,22 +1,16 @@
 package com._labor.fakecord.infrastructure.outbox.service.impl;
 
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.infrastructure.cache.CacheProvider;
-import com._labor.fakecord.infrastructure.cache.Dto.CachedSlice;
 import com._labor.fakecord.infrastructure.cache.services.CacheVersionService;
 import com._labor.fakecord.infrastructure.outbox.domain.CacheEvictEvent;
 import com._labor.fakecord.infrastructure.outbox.domain.enums.CacheSubType;
 import com._labor.fakecord.infrastructure.outbox.domain.enums.CacheType;
 import com._labor.fakecord.infrastructure.outbox.service.CacheEvictor;
-import com.github.benmanes.caffeine.cache.Cache;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 

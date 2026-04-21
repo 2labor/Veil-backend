@@ -38,6 +38,8 @@ public class AllCacheEvictor implements CacheEvictor {
       }
 
       case BLOCKS -> {
+        friendCache.evict(event);
+        requestsCache.evict(event);
         blockCache.evict(event);
       }
       

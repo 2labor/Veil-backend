@@ -86,6 +86,7 @@ public class CacheEvictOutboxHandler implements OutboxHandler {
 
       case SOCIAL_USER_UNBLOCKED -> {
         publish(actorId, CacheType.BLOCKS, CacheSubType.BLOCK_LIST);
+        publish(targetId, CacheType.BLOCKS, CacheSubType.BLOCK_LIST);
       }
 
       default -> log.debug("Event {} handled by default logic", type);

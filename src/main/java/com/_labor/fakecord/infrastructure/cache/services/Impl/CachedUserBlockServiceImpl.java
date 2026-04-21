@@ -1,5 +1,6 @@
 package com._labor.fakecord.infrastructure.cache.services.Impl;
 
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +15,7 @@ import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.infrastructure.cache.Dto.CachedSlice;
 import com._labor.fakecord.infrastructure.cache.services.CacheVersionService;
 import com._labor.fakecord.infrastructure.repository.SocialCacheRepository;
+import com._labor.fakecord.repository.UserBlockRepository;
 import com._labor.fakecord.services.UserBlockService;
 import com.github.benmanes.caffeine.cache.Cache;
 
@@ -31,6 +33,7 @@ public class CachedUserBlockServiceImpl implements UserBlockService {
   private final UserBlockService delegate;
   private final CacheVersionService versionService;
   private final SocialCacheRepository cacheRepository;
+  private final UserBlockRepository blockRepository;
 
   @Value("${fakecord.friends-block.duration-minutes}")
   private long ttlRedis;
@@ -38,17 +41,21 @@ public class CachedUserBlockServiceImpl implements UserBlockService {
   @Override
   public void blockUser(UUID actorId, UUID targetId) {
     delegate.blockUser(actorId, targetId);
-    versionService.incrementVersion("blocks", actorId); 
-    versionService.incrementVersion("blocks", targetId);
+
+    cacheRepository.evict(actorId);
+    cacheRepository.evict(targetId);
+
     versionService.incrementVersion("blocked_list", actorId);
+    versionService.incrementVersion("friends", actorId);
+    versionService.incrementVersion("friends", targetId);
+
     log.info("User {} blocked target {}. Cache versions incremented.", actorId, targetId);
   }
 
   @Override
   public void unblockUser(UUID actorId, UUID targetId) {
     delegate.unblockUser(actorId, targetId);
-    versionService.incrementVersion("blocks", actorId);
-    versionService.incrementVersion("blocks", targetId);
+    cacheRepository.evict(actorId);
     versionService.incrementVersion("blocked_list", actorId);
     log.info("User {} unblocked target {}. Cache versions incremented.", actorId, targetId);
   }
@@ -57,7 +64,10 @@ public class CachedUserBlockServiceImpl implements UserBlockService {
   public boolean isBlocked(UUID actorId, UUID targetId) {
     return cacheRepository.isBlocked(actorId, targetId)
       .orElseGet(() -> {
-        return delegate.isBlocked(actorId, targetId);
+          boolean result = delegate.isBlocked(actorId, targetId);
+          Set<UUID> allBlocked = blockRepository.findAllBlockedTargetIds(actorId);
+          cacheRepository.fillBlockedCache(actorId, allBlocked);
+          return result;
       });
   }
 

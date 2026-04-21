@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import com._labor.fakecord.domain.enums.UserStatus;
 import com._labor.fakecord.domain.events.UserStatusChangedEvent;
 import com._labor.fakecord.infrastructure.presence.PresenceMask;
+import com._labor.fakecord.repository.UserProfileRepository;
 import com._labor.fakecord.services.UserStatusService;
 
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class RedisUserStatusService implements UserStatusService {
   
   private final StringRedisTemplate redisTemplate;
   private final ApplicationEventPublisher eventPublisher;
+  private final UserProfileRepository repository;
 
   private static final String STATUS_KEY_PREFIX = "status:";
   private static final Duration TTL_DEFAULT = Duration.ofMinutes(5);
@@ -63,6 +65,25 @@ public class RedisUserStatusService implements UserStatusService {
   public void touch(UUID userId) {
     String cacheKey = STATUS_KEY_PREFIX + userId;
     redisTemplate.expire(cacheKey, TTL_DEFAULT);
+  }
+
+  @Override
+  public void setOnlineWithPreference(UUID userId) {
+    int currentMask = getMask(userId);
+    if (currentMask != -1) {
+      touch(userId);
+      return;
+    }
+
+    repository.findById(userId).ifPresentOrElse(profile  -> {
+      UserStatus pref = profile.getStatusPreference();
+      if (pref == null) pref = UserStatus.ONLINE;
+      boolean invisible = pref == UserStatus.INVISIBLE;
+      int mask = PresenceMask.createMask(invisible ? UserStatus.INVISIBLE : pref, invisible);
+      updateMask(userId, mask);
+    }, () -> {
+      updateMask(userId, PresenceMask.createMask(UserStatus.ONLINE, false));
+    });
   }
     
 }
