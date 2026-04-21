@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
+import com._labor.fakecord.domain.dto.ChannelAccessInfo;
 import com._labor.fakecord.domain.entity.ChannelMember;
 import com._labor.fakecord.domain.entity.ChannelMemberId;
 
@@ -56,4 +57,15 @@ public interface ChannelMemberRepository extends JpaRepository<ChannelMember, Ch
   int updateLastReadIfGreater(@Param("channelId") Long channelId, 
     @Param("userId") UUID userId, 
     @Param("messageId") Long messageId);
+
+  @Query("""
+    SELECT 
+      c.type as channelType,
+      (SELECT cm2.id.userId FROM ChannelMember cm2 
+        WHERE cm2.id.channelId = c.id AND cm2.id.userId != :authorId) as recipientId
+    FROM Channel c
+    JOIN ChannelMember cm ON c.id = cm.id.channelId
+    WHERE c.id = :channelId AND cm.id.userId = :authorId
+  """)
+  Optional<ChannelAccessInfo> getAccessInfo(@Param("channelId") Long channelId, @Param("authorId") UUID authorId);
 }

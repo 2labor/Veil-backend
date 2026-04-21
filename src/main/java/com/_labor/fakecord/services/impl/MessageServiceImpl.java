@@ -14,12 +14,14 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com._labor.fakecord.domain.dto.ChannelAccessInfo;
 import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.domain.enums.MessageType;
 import com._labor.fakecord.domain.enums.SocketEventType;
 import com._labor.fakecord.infrastructure.id.IdGenerator;
 import com._labor.fakecord.infrastructure.outbox.domain.payload.MessageCreatedPayload;
+import com._labor.fakecord.repository.ChannelMemberRepository;
 import com._labor.fakecord.repository.ChannelRepository;
 import com._labor.fakecord.repository.MessageRepository;
 import com._labor.fakecord.services.MessageBroadcaster;
@@ -27,6 +29,7 @@ import com._labor.fakecord.services.MessageService;
 import com._labor.fakecord.services.UserProfileCache;
 import com._labor.fakecord.services.validation.ChannelAccessValidator;
 import com._labor.fakecord.services.validation.MessageValidator;
+import com._labor.fakecord.services.validation.SocialGuard;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,10 +43,12 @@ public class MessageServiceImpl implements MessageService{
   private final MessageBroadcaster broadcaster;
   private final ChannelRepository channelRepository;
   private final IdGenerator idGenerator;
+  private final ChannelMemberRepository channelMemberRepository;
   private final MessageValidator messageValidator;
   private final ChannelAccessValidator accessValidator;
   private final KafkaTemplate<String, Object> kafkaTemplate;
   private final UserProfileCache profileCache;
+  private final SocialGuard socialGuard;
   
 
   @Override
@@ -56,7 +61,11 @@ public class MessageServiceImpl implements MessageService{
       return null;
     }
 
-    accessValidator.accessValidation(channelId, authorId);
+    ChannelAccessInfo accessInfo = channelMemberRepository.getAccessInfo(channelId, authorId)
+      .orElseThrow(() -> new RuntimeException("ACCESS_DENIED_TO_CHANNEL"));
+
+    socialGuard.validateInteraction(accessInfo, authorId);    
+
     messageValidator.validate(content);
 
     long messageId = idGenerator.nextId();
