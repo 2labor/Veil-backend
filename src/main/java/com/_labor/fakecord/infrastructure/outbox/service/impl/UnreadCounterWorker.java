@@ -48,11 +48,14 @@ public class UnreadCounterWorker {
         MessageCreatedPayload personalPayload = new MessageCreatedPayload(
           basePayload.messageId(),
           basePayload.channelId(),
+          basePayload.serverId(),
           basePayload.authorId(),
           basePayload.authorName(),
           basePayload.content(),
           currentUnread,
-          now
+          now,
+          basePayload.channelType(),
+          basePayload.channelName()
         );
 
         var notification = SystemNotification.of(
