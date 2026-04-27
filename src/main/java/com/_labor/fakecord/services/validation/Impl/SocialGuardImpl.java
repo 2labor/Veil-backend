@@ -5,10 +5,8 @@ import java.util.UUID;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
-import com._labor.fakecord.domain.dto.ChannelAccessInfo;
-import com._labor.fakecord.domain.entity.Channel;
+import com._labor.fakecord.domain.dto.MessageContext;
 import com._labor.fakecord.domain.enums.ChannelType;
-import com._labor.fakecord.repository.ChannelRepository;
 import com._labor.fakecord.services.UserBlockService;
 import com._labor.fakecord.services.validation.SocialGuard;
 
@@ -24,9 +22,9 @@ public class SocialGuardImpl implements SocialGuard {
 
 
   @Override
-  public void validateInteraction(ChannelAccessInfo accessInfo, UUID authorId) {
-    if (ChannelType.DM.equals(accessInfo.getChannelType())) {
-      UUID recipientId = accessInfo.getRecipientId();
+  public void validateInteraction(MessageContext messageContext, UUID authorId) {
+    if (ChannelType.DM.equals(messageContext.getChannelType())) {
+      UUID recipientId = messageContext.getRecipientId();
 
       if (recipientId != null && (userBlockService.isBlocked(authorId, recipientId) 
           || userBlockService.isBlocked(recipientId, authorId))) {

@@ -14,7 +14,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com._labor.fakecord.domain.dto.ChannelAccessInfo;
+import com._labor.fakecord.domain.dto.MessageContext;
 import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.domain.enums.MessageType;
@@ -61,10 +61,10 @@ public class MessageServiceImpl implements MessageService{
       return null;
     }
 
-    ChannelAccessInfo accessInfo = channelMemberRepository.getAccessInfo(channelId, authorId)
+    MessageContext messageContext = channelMemberRepository.getMessageContext(channelId, authorId)
       .orElseThrow(() -> new RuntimeException("ACCESS_DENIED_TO_CHANNEL"));
 
-    socialGuard.validateInteraction(accessInfo, authorId);    
+    socialGuard.validateInteraction(messageContext, authorId);    
 
     messageValidator.validate(content);
 
@@ -82,20 +82,27 @@ public class MessageServiceImpl implements MessageService{
 
     String authorName = profileCache.getUserProfile(authorId).displayName();
 
+    String displayChannelName = (messageContext.getChannelType() == ChannelType.DM) 
+    ? authorName 
+    : messageContext.getChannelName();
+
     MessageCreatedPayload payload = new MessageCreatedPayload(
       saved.getId(),
       saved.getChannelId(),
+      messageContext.getServiceId(),
       saved.getAuthorId(),
       authorName,
       saved.getContent(),
       null,
-      null
+      null,
+      messageContext.getChannelType(),
+      displayChannelName
     );
 
     kafkaTemplate.send("chat.messages", channelId.toString(), payload);
     broadcaster.broadcastMessageEvent(saved, SocketEventType.MESSAGE_CREATE);
     
-    updateChannelMetadata(channelId, saved);
+    updateChannelMetadata(channelId, saved, messageContext.getChannelType());
     return saved;
   }
 
@@ -222,19 +229,15 @@ public class MessageServiceImpl implements MessageService{
     return combined;
   }  
 
-  private void updateChannelMetadata(Long channelId, Message saved) {
-    channelRepository.findById(channelId).ifPresent(channel -> {
-      channel.setLastMessageId(saved.getId());
-      channel.setLastActivityAt(Instant.now());
-
-      if(channel.getType() == ChannelType.DM || channel.getType() == ChannelType.GROUP_DM) {
-        String preview = saved.getContent();
+  private void updateChannelMetadata(Long channelId, Message saved, ChannelType type) {
+    String preview = null;
+    if (type == ChannelType.DM || type == ChannelType.GROUP_DM) {
+        preview = saved.getContent();
         if (preview != null && preview.length() > 50) {
-          preview = preview.substring(0, 48) + "...";
+            preview = preview.substring(0, 48) + "...";
         }
-        channel.setLastMessageContent(preview);
-      }
-      channelRepository.save(channel);
-    });
+    }
+    
+    channelRepository.updateChannelActivity(channelId, saved.getId(), Instant.now(), preview);
   }
 }
