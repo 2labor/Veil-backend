@@ -18,13 +18,13 @@ import org.springframework.web.bind.annotation.RestController;
 import com._labor.fakecord.domain.dto.MessageDto;
 import com._labor.fakecord.domain.dto.MessageEditRequest;
 import com._labor.fakecord.domain.dto.MessageRequest;
+import com._labor.fakecord.domain.dto.MessageWindowDto;
 import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.enums.UserStatus;
 import com._labor.fakecord.domain.mappper.MessageMapper;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;
 import com._labor.fakecord.security.ratelimit.RateLimitSource;
 import com._labor.fakecord.security.ratelimit.annotation.RateLimited;
-import com._labor.fakecord.services.ChannelMemberService;
 import com._labor.fakecord.services.MessageService;
 import com._labor.fakecord.services.UserProfileCache;
 
@@ -88,11 +88,11 @@ public class MessageRestController {
       ? messageService.getLatestMessages(channelId,userId ,limit)
       : messageService.getMessagesBefore(channelId, userId, before, limit);
 
-    return ResponseEntity.ok(mapToDtoList(slice.getContent()));
+    return ResponseEntity.ok(messageMapper.toListDto(slice.getContent()));
   }
 
   @GetMapping("/{targetMessageId}/context")
-  public ResponseEntity<List<MessageDto>> getContext(
+  public ResponseEntity<MessageWindowDto> getContext(
     @PathVariable Long channelId,
     @PathVariable Long targetMessageId,
     @RequestParam(defaultValue = "20") int limit,
@@ -100,8 +100,8 @@ public class MessageRestController {
   ) {
     UUID userId = getUserId(principal);
 
-    var messages = messageService.getMessageContent(channelId, userId, targetMessageId, limit);
-    return ResponseEntity.ok(mapToDtoList(messages));
+    MessageWindowDto window = messageService.getMessageContent(channelId, userId, targetMessageId, limit);
+    return ResponseEntity.ok(window);
   }
 
   @DeleteMapping("/{messageId}")
@@ -131,11 +131,5 @@ public class MessageRestController {
     var fullProfile = profileCache.getUserProfile(entity.getAuthorId());
     var profile = profileMapper.toShortDto(fullProfile, UserStatus.ONLINE);
     return messageMapper.toDto(entity, profile); 
-  }
-
-  private List<MessageDto> mapToDtoList(List<Message> messages) {
-    return messages.stream()
-      .map(this::toDto)
-      .toList();
   }
 }

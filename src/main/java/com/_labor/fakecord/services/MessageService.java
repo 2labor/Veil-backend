@@ -1,10 +1,10 @@
 package com._labor.fakecord.services;
 
-import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Slice;
 
+import com._labor.fakecord.domain.dto.MessageWindowDto;
 import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.enums.MessageType;
 
@@ -19,5 +19,5 @@ public interface MessageService {
   // Queries
   Slice<Message> getLatestMessages(Long channelId, UUID currentUserId,  int size);
   Slice<Message> getMessagesBefore(Long channelId, UUID currentUserId, Long lastMessageId, int size);
-  List<Message> getMessageContent(Long chanelId,  UUID currentUserId, Long targetMessageId, int limit);
+  MessageWindowDto getMessageContent(Long channelId, UUID currentUserId, Long targetMessageId, int limit);  
 }
