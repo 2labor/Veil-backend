@@ -15,6 +15,7 @@ import com._labor.fakecord.domain.notifications.NotificationPayload;
 import com._labor.fakecord.domain.notifications.SystemNotification;
 import com._labor.fakecord.services.MessageBroadcaster;
 import com._labor.fakecord.services.NotificationService;
+import com._labor.fakecord.services.TypingService;
 import com._labor.fakecord.services.UserProfileCache;
 
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class RedisMessageBroadcaster implements MessageBroadcaster {
   private final MessageMapper messageMapper;
   private final UserProfileCache profileCache;
   private final UserProfileMapper profileMapper;
+  private final TypingService typingService;
 
   @Override
   public void broadcastMessageEvent(Message message, SocketEventType type) {
@@ -50,6 +52,8 @@ public class RedisMessageBroadcaster implements MessageBroadcaster {
       priority, 
       dto
     );
+    
+    typingService.stopTyping(message.getChannelId(), message.getAuthorId());
     
     notificationService.sendToChannel(message.getChannelId(), notification);
   }
