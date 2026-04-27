@@ -14,6 +14,7 @@ import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import com._labor.fakecord.infrastructure.notification.Impl.RedisNotificationReceiver;
+import com._labor.fakecord.infrastructure.notification.Impl.TypingReceiver;
 import com._labor.fakecord.infrastructure.outbox.service.impl.CacheEvictReceiver;
   
 
@@ -41,6 +42,13 @@ public class RedisConfig {
   }
 
   @Bean
+  MessageListenerAdapter typingListenerAdapter(TypingReceiver receiver) {
+    MessageListenerAdapter adapter = new MessageListenerAdapter(receiver, "handleEvent");
+    adapter.setSerializer(new GenericJackson2JsonRedisSerializer());
+    return adapter;
+  }
+
+  @Bean
   MessageListenerAdapter evictListenerAdapter(CacheEvictReceiver receiver) {
     MessageListenerAdapter adapter = new MessageListenerAdapter(receiver, "handleEvict");
 
@@ -53,6 +61,7 @@ public class RedisConfig {
   RedisMessageListenerContainer container(
     RedisConnectionFactory connectionFactory,
     MessageListenerAdapter evictListenerAdapter, 
+    MessageListenerAdapter typingListenerAdapter,
     RedisNotificationReceiver notificationReceiver
   ) {
     RedisMessageListenerContainer container = new RedisMessageListenerContainer();
@@ -62,6 +71,7 @@ public class RedisConfig {
     
     container.addMessageListener(notificationReceiver, new PatternTopic("channel:events:*"));
     container.addMessageListener(notificationReceiver, new PatternTopic("users:notifications:*"));
+    container.addMessageListener(typingListenerAdapter, new PatternTopic("channel:typing:*"));
 
     container.setTaskExecutor(Executors.newFixedThreadPool(4));
     return container;

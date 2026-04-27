@@ -15,10 +15,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com._labor.fakecord.domain.dto.MessageContext;
+import com._labor.fakecord.domain.dto.MessageWindowDto;
 import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.domain.enums.MessageType;
 import com._labor.fakecord.domain.enums.SocketEventType;
+import com._labor.fakecord.domain.mappper.MessageMapper;
 import com._labor.fakecord.infrastructure.id.IdGenerator;
 import com._labor.fakecord.infrastructure.outbox.domain.payload.MessageCreatedPayload;
 import com._labor.fakecord.repository.ChannelMemberRepository;
@@ -49,6 +51,7 @@ public class MessageServiceImpl implements MessageService{
   private final KafkaTemplate<String, Object> kafkaTemplate;
   private final UserProfileCache profileCache;
   private final SocialGuard socialGuard;
+  private final MessageMapper messageMapper;
   
 
   @Override
@@ -202,31 +205,36 @@ public class MessageServiceImpl implements MessageService{
 
   @Override
   @Transactional(readOnly = true)
-  public List<Message> getMessageContent(Long channelId, UUID currentUserId, Long targetMessageId, int limit) {
+  public MessageWindowDto getMessageContent(Long channelId, UUID currentUserId, Long targetMessageId, int limit) {
     accessValidator.accessValidation(channelId, currentUserId);
 
     log.info("Loading context window around message {} in channel {}", targetMessageId, channelId);
     int halfLimit = limit / 2;
 
-    Message target = repository.findById(targetMessageId)
-      .orElseThrow(() -> new RuntimeException("Target message not found"));
+    Slice<Message> messagesBefore = repository.findAllByChannelIdAndIdLessThanOrderByIdDesc(channelId, targetMessageId, PageRequest.of(0, halfLimit + 1));
 
-    List<Message> before = repository.findAllByChannelIdAndIdLessThanOrderByIdDesc(
-      channelId, targetMessageId, PageRequest.of(0, halfLimit)
-    ).getContent();
+    Slice<Message> messagesAfter = repository.findAllByChannelIdAndIdGreaterThanOrderByIdAsc(channelId, targetMessageId, PageRequest.of(0, halfLimit + 1));
 
-    List<Message> after = repository.findAllByChannelIdAndIdGreaterThanOrderByIdAsc(
-      channelId, targetMessageId, PageRequest.of(0, halfLimit)
-    ).getContent();
+    Message target = repository.findById(targetMessageId).orElseThrow(() -> new RuntimeException("Target message not found"));
 
     List<Message> combined = new ArrayList<>();
-    combined.addAll(before);
+
+    List<Message> beforeList = new ArrayList<>(messagesBefore.getContent());
+    if (beforeList.size() > halfLimit) beforeList.remove(beforeList.size() - 1);
+    beforeList.sort(Comparator.comparing(Message::getId));
+    combined.addAll(beforeList);
     combined.add(target);
-    combined.addAll(after);
 
-    combined.sort(Comparator.comparing(Message::getId));
-
-    return combined;
+    List<Message> afterList = new ArrayList<>(messagesAfter.getContent());
+    if (afterList.size() > halfLimit) afterList.remove(afterList.size() - 1);
+    combined.addAll(afterList);
+    
+    return new MessageWindowDto(
+      messageMapper.toListDto(combined),
+      messagesBefore.hasNext(),
+      messagesAfter.hasNext(),
+      targetMessageId.toString()
+    );
   }  
 
   private void updateChannelMetadata(Long channelId, Message saved, ChannelType type) {
