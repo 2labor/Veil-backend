@@ -85,9 +85,12 @@ public class MessageServiceImpl implements MessageService{
 
     String authorName = profileCache.getUserProfile(authorId).displayName();
 
-    String displayChannelName = (messageContext.getChannelType() == ChannelType.DM) 
-    ? authorName 
-    : messageContext.getChannelName();
+    String displayChannelName;
+    if (messageContext.getChannelType() == ChannelType.DM) {
+      displayChannelName = authorName;
+    } else {
+      displayChannelName = messageContext.getChannelName();
+    }
 
     MessageCreatedPayload payload = new MessageCreatedPayload(
       saved.getId(),

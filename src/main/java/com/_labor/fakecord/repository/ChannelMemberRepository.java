@@ -58,16 +58,18 @@ public interface ChannelMemberRepository extends JpaRepository<ChannelMember, Ch
     @Param("userId") UUID userId, 
     @Param("messageId") Long messageId);
 
-  @Query("""
+  @Query(value = """
     SELECT 
-        c.type as channelType,
-        c.name as channelName,
-        c.serverId as serverId,
-        (SELECT cm2.id.userId FROM ChannelMember cm2 
-         WHERE cm2.id.channelId = c.id AND cm2.id.userId != :authorId) as recipientId
-    FROM Channel c
-    JOIN ChannelMember cm ON c.id = cm.id.channelId
-    WHERE c.id = :channelId AND cm.id.userId = :authorId
-  """)
-  Optional<MessageContext> getMessageContext(@Param("channelId") Long channelId, @Param("authorId") UUID authorId);
+      c.type as type, 
+      c.name as name, 
+      c.server_id as serverId, 
+      (SELECT cm2.user_id 
+      FROM channel_members cm2 
+      WHERE cm2.channel_id = c.id AND cm2.user_id <> :userId 
+      LIMIT 1) as partnerId 
+    FROM channels c 
+    JOIN channel_members cm1 ON c.id = cm1.channel_id 
+    WHERE c.id = :channelId AND cm1.user_id = :userId
+    """, nativeQuery = true)
+  Optional<MessageContext> getMessageContext(@Param("channelId") Long channelId, @Param("userId") UUID userId);
 }
