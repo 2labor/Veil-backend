@@ -1,11 +1,13 @@
 package com._labor.fakecord.domain.mappper.Impl;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
 import com._labor.fakecord.domain.dto.MessageDto;
+import com._labor.fakecord.domain.dto.ReplyPreviewDto;
 import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.enums.UserStatus;
@@ -33,7 +35,7 @@ public class MessageMapperImpl implements MessageMapper {
   }
 
   @Override
-  public MessageDto toDto(Message message, UserProfileShort authorDto) {
+  public MessageDto toDto(Message message, UserProfileShort authorDto, ReplyPreviewDto parentPreview) {
 
     if (null == message) return null;
 
@@ -43,6 +45,8 @@ public class MessageMapperImpl implements MessageMapper {
       message.getContent(),
       message.getType(),
       authorDto,
+      message.getParentId(),
+      parentPreview,
       message.getNonce(),
       (message.getUpdatedAt() == null ? null : message.getUpdatedAt().toEpochMilli()),
       message.getCreatedAt().toEpochMilli()
@@ -50,7 +54,7 @@ public class MessageMapperImpl implements MessageMapper {
   }
 
   @Override
-  public List<MessageDto> toListDto(List<Message> messages) {
+  public List<MessageDto> toListDto(List<Message> messages, Map<Long, ReplyPreviewDto> preloadedPreviews) {
     if (messages == null) return null;
     
     return messages.stream()
@@ -58,7 +62,8 @@ public class MessageMapperImpl implements MessageMapper {
         var fullProfile = profileCache.getUserProfile(message.getAuthorId());
         UserProfileShort authorDto = profileMapper.toShortDto(fullProfile, UserStatus.ONLINE);
         
-        return toDto(message, authorDto);
+        ReplyPreviewDto preview = (message.getParentId() != null) ? preloadedPreviews.get(message.getParentId()) : null;
+        return toDto(message, authorDto, preview);
       })
       .collect(Collectors.toList());
     }
