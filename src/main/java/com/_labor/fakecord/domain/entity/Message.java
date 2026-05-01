@@ -43,6 +43,9 @@ public class Message {
   @Column(name = "author_id", nullable = false)
   private UUID authorId;
 
+  @Column(name = "parent_id")
+  private Long parentId;
+
   @Column(name = "nonce", unique = true)
   private String nonce;
 
@@ -53,15 +56,16 @@ public class Message {
   private Instant updatedAt;
 
   @Builder
-  public Message(Long id, MessageType type, Long channelId, UUID authorId, String content, String nonce) {
+  public Message(Long id, MessageType type, Long channelId, UUID authorId, Long parentId, String content, String nonce) {
     Objects.requireNonNull(id, "ID (TSID) must be provided");
     Objects.requireNonNull(channelId, "Channel ID is required");
     Objects.requireNonNull(authorId, "Author ID is required");
 
     this.id = id;
-    this.type = type;
+    this.type = (type != null) ? type : MessageType.TEXT;
     this.channelId = channelId;
     this.authorId = authorId;
+    this.parentId = parentId;
     this.content = content;
     this.nonce = nonce;
 

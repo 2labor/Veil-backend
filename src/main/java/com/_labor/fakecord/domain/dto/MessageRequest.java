@@ -9,5 +9,7 @@ public record MessageRequest(
   String content,
 
   @NotBlank(message = "Nonce is required for idempotency")
-  String nonce
+  String nonce,
+
+  Long parentId
 ) {}
