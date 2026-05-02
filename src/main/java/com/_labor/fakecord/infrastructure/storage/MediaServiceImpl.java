@@ -3,18 +3,14 @@ package com._labor.fakecord.infrastructure.storage;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.access.method.P;
-import org.springframework.security.core.userdetails.UserCache;
 import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.domain.dto.UploadResponse;
 import com._labor.fakecord.domain.entity.UserProfile;
 import com._labor.fakecord.domain.enums.ImageType;
 import com._labor.fakecord.domain.enums.MediaType;
-import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
 import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com._labor.fakecord.repository.UserProfileRepository;
-import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.services.UserProfileCache;
 
 import jakarta.transaction.Transactional;
