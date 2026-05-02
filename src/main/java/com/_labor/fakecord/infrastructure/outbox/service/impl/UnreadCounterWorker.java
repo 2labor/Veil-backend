@@ -52,6 +52,7 @@ public class UnreadCounterWorker {
           basePayload.authorId(),
           basePayload.authorName(),
           basePayload.content(),
+          basePayload.parentId(),
           currentUnread,
           now,
           basePayload.channelType(),

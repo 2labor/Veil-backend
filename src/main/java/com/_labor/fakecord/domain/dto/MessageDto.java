@@ -10,6 +10,8 @@ public record MessageDto (
   String content,
   MessageType type,
   UserProfileShort author,
+  Long parentId,
+  ReplyPreviewDto previewDto,
   String nonce,
   Long updatesAt,
   Long timestamp

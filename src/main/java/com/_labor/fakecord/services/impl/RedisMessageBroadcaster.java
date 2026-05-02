@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.domain.dto.MessageDelete;
 import com._labor.fakecord.domain.dto.MessageDto;
+import com._labor.fakecord.domain.dto.ReplyPreviewDto;
 import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.enums.NotificationPriority;
 import com._labor.fakecord.domain.enums.NotificationType;
@@ -13,6 +14,7 @@ import com._labor.fakecord.domain.mappper.MessageMapper;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;
 import com._labor.fakecord.domain.notifications.NotificationPayload;
 import com._labor.fakecord.domain.notifications.SystemNotification;
+import com._labor.fakecord.repository.MessageRepository;
 import com._labor.fakecord.services.MessageBroadcaster;
 import com._labor.fakecord.services.NotificationService;
 import com._labor.fakecord.services.TypingService;
@@ -31,6 +33,7 @@ public class RedisMessageBroadcaster implements MessageBroadcaster {
   private final UserProfileCache profileCache;
   private final UserProfileMapper profileMapper;
   private final TypingService typingService;
+  private final MessageRepository messageRepository;
 
   @Override
   public void broadcastMessageEvent(Message message, SocketEventType type) {
@@ -99,6 +102,22 @@ public class RedisMessageBroadcaster implements MessageBroadcaster {
   private MessageDto convertToDto(Message message) {
     var fullProfile = profileCache.getUserProfile(message.getAuthorId());
     var shortProfile = profileMapper.toShortDto(fullProfile, UserStatus.ONLINE);
-    return messageMapper.toDto(message, shortProfile);
+
+    ReplyPreviewDto preview = null;
+    if (message.getParentId() != null) {
+      preview = messageRepository.findById(message.getParentId())
+        .map(this::buildReplyPreview)
+        .orElse(null);
+    }
+    return messageMapper.toDto(message, shortProfile, preview);
+  }
+
+  private ReplyPreviewDto buildReplyPreview(Message parent) {
+    var profile = profileCache.getUserProfile(parent.getAuthorId());
+    String truncated = parent.getContent();
+    if (truncated != null && truncated.length() > 25) {
+      truncated = truncated.substring(0, 22) + "...";
+    }
+    return new ReplyPreviewDto(profile.displayName(), profile.avatarUrl(), truncated);
   }
 }

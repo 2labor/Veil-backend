@@ -4,7 +4,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -15,7 +19,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com._labor.fakecord.domain.dto.MessageContext;
+import com._labor.fakecord.domain.dto.MessageDto;
 import com._labor.fakecord.domain.dto.MessageWindowDto;
+import com._labor.fakecord.domain.dto.ReplyPreviewDto;
 import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.domain.enums.MessageType;
@@ -56,7 +62,7 @@ public class MessageServiceImpl implements MessageService{
 
   @Override
   @Transactional
-  public Message sendMessage(Long channelId, UUID authorId, String content, String nonce) {
+  public Message sendMessage(Long channelId, UUID authorId, String content, String nonce, Long parentId) {
     log.info("Sending message to channel {} by user {}", channelId, authorId);
 
      if (repository.existsByNonce(nonce)) {
@@ -67,9 +73,14 @@ public class MessageServiceImpl implements MessageService{
     MessageContext messageContext = channelMemberRepository.getMessageContext(channelId, authorId)
       .orElseThrow(() -> new RuntimeException("ACCESS_DENIED_TO_CHANNEL"));
 
+    if (parentId != null) {
+      validateParentMessage(parentId, channelId);
+    }
+
     socialGuard.validateInteraction(messageContext, authorId);    
 
     messageValidator.validate(content);
+
 
     long messageId = idGenerator.nextId();
     Message message = Message.builder()
@@ -77,6 +88,7 @@ public class MessageServiceImpl implements MessageService{
     .type(MessageType.TEXT)
     .channelId(channelId)
     .authorId(authorId)
+    .parentId(parentId)
     .content(content)
     .nonce(nonce)
     .build();
@@ -84,27 +96,16 @@ public class MessageServiceImpl implements MessageService{
     Message saved = repository.save(message);
 
     String authorName = profileCache.getUserProfile(authorId).displayName();
-
+  
     String displayChannelName;
     if (messageContext.getChannelType() == ChannelType.DM) {
       displayChannelName = authorName;
     } else {
       displayChannelName = messageContext.getChannelName();
     }
-
-    MessageCreatedPayload payload = new MessageCreatedPayload(
-      saved.getId(),
-      saved.getChannelId(),
-      messageContext.getServiceId(),
-      saved.getAuthorId(),
-      authorName,
-      saved.getContent(),
-      null,
-      null,
-      messageContext.getChannelType(),
-      displayChannelName
-    );
-
+    
+    MessageCreatedPayload payload = createPayload(saved, messageContext, authorName);
+    
     kafkaTemplate.send("chat.messages", channelId.toString(), payload);
     broadcaster.broadcastMessageEvent(saved, SocketEventType.MESSAGE_CREATE);
     
@@ -232,13 +233,45 @@ public class MessageServiceImpl implements MessageService{
     if (afterList.size() > halfLimit) afterList.remove(afterList.size() - 1);
     combined.addAll(afterList);
     
+    List<MessageDto> enrichedDto = enrichMessagesBatch(combined);
+
     return new MessageWindowDto(
-      messageMapper.toListDto(combined),
+      enrichedDto,
       messagesBefore.hasNext(),
       messagesAfter.hasNext(),
       targetMessageId.toString()
     );
   }  
+
+  @Override
+  public List<MessageDto> enrichMessagesBatch(List<Message> messages) {
+    if (messages.isEmpty()) return List.of();
+
+    var parentIds = messages.stream()
+    .map(Message::getParentId)
+    .filter(Objects::nonNull)
+    .collect(Collectors.toSet());
+
+    if (parentIds.isEmpty()) {
+      return messageMapper.toListDto(messages, Map.of());
+    }
+
+    Map<Long, ReplyPreviewDto> previews = repository.findAllById(parentIds).stream()
+      .collect(Collectors.toMap(
+        Message::getId,
+        this::buildReplyPreviewSafely
+      ));
+
+    return messageMapper.toListDto(messages, previews);
+  }
+
+  @Override
+  public ReplyPreviewDto getReplyPreviewForSingleMessage(Long parentId) {
+  if (parentId == null) return null;
+  return repository.findById(parentId)
+    .map(this::buildReplyPreviewSafely)
+    .orElse(null);
+  }
 
   private void updateChannelMetadata(Long channelId, Message saved, ChannelType type) {
     String preview = null;
@@ -250,5 +283,48 @@ public class MessageServiceImpl implements MessageService{
     }
     
     channelRepository.updateChannelActivity(channelId, saved.getId(), Instant.now(), preview);
+  }
+
+  private void validateParentMessage(Long parentId, Long currentChannelId) {
+    if (!repository.existsByIdAndChannelId(parentId, currentChannelId)) {
+      log.error("Security alert: User tried to reply to message {} which doesn't exist in channel {}", 
+        parentId, currentChannelId);
+      throw new RuntimeException("PARENT_MESSAGE_NOT_FOUND_IN_CHANNEL");
+    }
+  }
+
+  private MessageCreatedPayload createPayload(Message saved, MessageContext ctx, String authorName) {
+    return new MessageCreatedPayload(
+      saved.getId(),
+      saved.getChannelId(),
+      ctx.getServiceId(),
+      saved.getAuthorId(),
+      authorName,
+      saved.getContent(),
+      saved.getParentId(),
+      null,
+      System.currentTimeMillis(),
+      ctx.getChannelType(),
+      ctx.getChannelName()
+    );
+  }
+
+  private ReplyPreviewDto buildReplyPreviewSafely(Message parent) {
+    try {
+        var profile = profileCache.getUserProfile(parent.getAuthorId());
+        return new ReplyPreviewDto(
+          profile.displayName(),
+          profile.avatarUrl(),
+          truncateContent(parent.getContent())
+        );
+    } catch (Exception e) {
+      log.error("Failed to build reply preview for message {}", parent.getId(), e);
+      return new ReplyPreviewDto("Unknown User", null, truncateContent(parent.getContent()));
+    }
+  }
+
+  private String truncateContent(String content) {
+    if (content == null) return "";
+    return content.length() > 25 ? content.substring(0, 22) + "..." : content;
   }
 }

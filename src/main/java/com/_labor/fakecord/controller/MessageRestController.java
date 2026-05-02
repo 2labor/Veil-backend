@@ -19,6 +19,7 @@ import com._labor.fakecord.domain.dto.MessageDto;
 import com._labor.fakecord.domain.dto.MessageEditRequest;
 import com._labor.fakecord.domain.dto.MessageRequest;
 import com._labor.fakecord.domain.dto.MessageWindowDto;
+import com._labor.fakecord.domain.dto.ReplyPreviewDto;
 import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.enums.UserStatus;
 import com._labor.fakecord.domain.mappper.MessageMapper;
@@ -55,7 +56,7 @@ public class MessageRestController {
     Principal principal
   ) {
     UUID userId = getUserId(principal);
-    Message message = messageService.sendMessage(channelId, userId, request.content(), request.nonce());
+    Message message = messageService.sendMessage(channelId, userId, request.content(), request.nonce(), request.parentId());
 
     if (message == null) return ResponseEntity.ok().build();
 
@@ -85,10 +86,12 @@ public class MessageRestController {
     UUID userId = getUserId(principal);
 
     var slice = (before == null) 
-      ? messageService.getLatestMessages(channelId,userId ,limit)
+      ? messageService.getLatestMessages(channelId, userId, limit)
       : messageService.getMessagesBefore(channelId, userId, before, limit);
 
-    return ResponseEntity.ok(messageMapper.toListDto(slice.getContent()));
+    List<MessageDto> dtos = messageService.enrichMessagesBatch(slice.getContent());
+
+    return ResponseEntity.ok(dtos);
   }
 
   @GetMapping("/{targetMessageId}/context")
@@ -130,6 +133,11 @@ public class MessageRestController {
   private MessageDto toDto(Message entity) {
     var fullProfile = profileCache.getUserProfile(entity.getAuthorId());
     var profile = profileMapper.toShortDto(fullProfile, UserStatus.ONLINE);
-    return messageMapper.toDto(entity, profile); 
+
+    ReplyPreviewDto preview = null;
+    if (entity.getParentId() != null) {
+      preview = messageService.getReplyPreviewForSingleMessage(entity.getParentId());
+    }
+    return messageMapper.toDto(entity, profile, preview); 
   }
 }

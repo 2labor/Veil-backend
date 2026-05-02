@@ -16,6 +16,7 @@ public record MessageCreatedPayload(
     UUID authorId,
     String authorName,
     String content, 
+    Long parentId,
     Integer unreadCount, 
     Long timestamp,
     ChannelType channelType,

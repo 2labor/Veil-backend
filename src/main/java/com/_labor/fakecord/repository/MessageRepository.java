@@ -38,4 +38,7 @@ public interface MessageRepository extends JpaRepository<Message, Long>{
     @Param("userId") UUID userId, 
     @Param("channelIds") List<Long> channelIds
   );
+
+  @Query("SELECT COUNT(m) > 0 FROM Message m WHERE m.id = :id AND m.channelId = :channelId")
+  boolean existsByIdAndChannelId(Long id, Long channelId);
 }
