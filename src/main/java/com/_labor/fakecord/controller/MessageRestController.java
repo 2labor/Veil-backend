@@ -56,7 +56,7 @@ public class MessageRestController {
     Principal principal
   ) {
     UUID userId = getUserId(principal);
-    Message message = messageService.sendMessage(channelId, userId, request.content(), request.nonce(), request.parentId());
+    Message message = messageService.sendMessage(channelId, userId, request.content(), request.nonce(), request.parentId(), request.attachmentIds());
 
     if (message == null) return ResponseEntity.ok().build();
 
@@ -72,7 +72,7 @@ public class MessageRestController {
   ) {
     UUID userId = getUserId(principal);
 
-    Message message = messageService.editMessage(messageId, userId, request.content());
+    Message message = messageService.editMessage(messageId, userId, request.content(), request.attachmentIds());
     return ResponseEntity.ok(toDto(message));
   }
 

@@ -1,5 +1,7 @@
 package com._labor.fakecord.domain.dto;
 
+import java.util.List;
+
 import com._labor.fakecord.domain.enums.MessageType;
 import com._labor.fakecord.domain.notifications.NotificationPayload;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -14,5 +16,6 @@ public record MessageDto (
   ReplyPreviewDto previewDto,
   String nonce,
   Long updatesAt,
+  List<AttachmentDto> attachments,
   Long timestamp
 ) implements NotificationPayload {}

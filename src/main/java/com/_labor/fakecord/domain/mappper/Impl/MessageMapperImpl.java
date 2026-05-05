@@ -11,6 +11,7 @@ import com._labor.fakecord.domain.dto.ReplyPreviewDto;
 import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.enums.UserStatus;
+import com._labor.fakecord.domain.mappper.AttachmentMapper;
 import com._labor.fakecord.domain.mappper.MessageMapper;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;
 import com._labor.fakecord.services.UserProfileCache;
@@ -22,6 +23,7 @@ public class MessageMapperImpl implements MessageMapper {
 
   private final UserProfileCache profileCache;
   private final UserProfileMapper profileMapper;
+  private final AttachmentMapper attachmentMapper;
 
   @Override
   public Message fromDto(MessageDto dto) {
@@ -49,6 +51,7 @@ public class MessageMapperImpl implements MessageMapper {
       parentPreview,
       message.getNonce(),
       (message.getUpdatedAt() == null ? null : message.getUpdatedAt().toEpochMilli()),
+      attachmentMapper.toListDto(message.getAttachments()),
       message.getCreatedAt().toEpochMilli()
     );
   }

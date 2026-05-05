@@ -1,6 +1,8 @@
 package com._labor.fakecord.domain.entity;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -10,13 +12,18 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import com._labor.fakecord.domain.enums.MessageType;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.OneToMany;
 
 @Entity
 @Getter
@@ -49,6 +56,9 @@ public class Message {
   @Column(name = "nonce", unique = true)
   private String nonce;
 
+  @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<Attachment> attachments = new ArrayList<>();
+
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
 
@@ -56,7 +66,7 @@ public class Message {
   private Instant updatedAt;
 
   @Builder
-  public Message(Long id, MessageType type, Long channelId, UUID authorId, Long parentId, String content, String nonce) {
+  public Message(Long id, MessageType type, Long channelId, UUID authorId, Long parentId, String content, String nonce, List<Attachment> attachments) {
     Objects.requireNonNull(id, "ID (TSID) must be provided");
     Objects.requireNonNull(channelId, "Channel ID is required");
     Objects.requireNonNull(authorId, "Author ID is required");
@@ -69,10 +79,21 @@ public class Message {
     this.content = content;
     this.nonce = nonce;
 
+    if (attachments != null) {
+      for (Attachment attach : attachments) {
+        this.attachments.add(attach);
+      }
+    }
+
     this.createdAt = Instant.now();
   }
 
    public void onUpdate() {
     this.updatedAt = Instant.now();
+  }
+
+  public void addAttachment(Attachment attachment) {
+    this.attachments.add(attachment);
+    attachment.setMessage(this);
   }
 }

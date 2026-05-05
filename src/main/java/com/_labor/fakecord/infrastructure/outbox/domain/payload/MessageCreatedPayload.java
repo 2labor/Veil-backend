@@ -1,7 +1,9 @@
 package com._labor.fakecord.infrastructure.outbox.domain.payload;
 
+import java.util.List;
 import java.util.UUID;
 
+import com._labor.fakecord.domain.dto.AttachmentDto;
 import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.domain.notifications.NotificationPayload;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -17,6 +19,7 @@ public record MessageCreatedPayload(
     String authorName,
     String content, 
     Long parentId,
+    List<AttachmentDto> attachments,
     Integer unreadCount, 
     Long timestamp,
     ChannelType channelType,
