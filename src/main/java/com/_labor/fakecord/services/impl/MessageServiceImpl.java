@@ -28,6 +28,7 @@ import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.domain.enums.MessageType;
 import com._labor.fakecord.domain.enums.SocketEventType;
+import com._labor.fakecord.domain.mappper.AttachmentMapper;
 import com._labor.fakecord.domain.mappper.MessageMapper;
 import com._labor.fakecord.infrastructure.id.IdGenerator;
 import com._labor.fakecord.infrastructure.outbox.domain.payload.MessageCreatedPayload;
@@ -61,6 +62,7 @@ public class MessageServiceImpl implements MessageService{
   private final UserProfileCache profileCache;
   private final SocialGuard socialGuard;
   private final MessageMapper messageMapper;
+  private final AttachmentMapper attachmentMapper;
   private final AttachmentService attachmentService;
   
 
@@ -312,6 +314,7 @@ public class MessageServiceImpl implements MessageService{
       authorName,
       saved.getContent(),
       saved.getParentId(),
+      attachmentMapper.toListDto(saved.getAttachments()),
       null,
       System.currentTimeMillis(),
       ctx.getChannelType(),
