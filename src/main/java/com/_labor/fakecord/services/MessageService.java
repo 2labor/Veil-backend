@@ -13,8 +13,8 @@ import com._labor.fakecord.domain.enums.MessageType;
 
 public interface MessageService {
   //Actions
-  Message sendMessage(Long channelId, UUID authorId, String content, String nonce, Long parentId);
-  Message editMessage(Long messageId, UUID operantId, String newContent);
+  Message sendMessage(Long channelId, UUID authorId, String content, String nonce, Long parentId, List<UUID> attachmentIds);
+  Message editMessage(Long messageId, UUID operantId, String newContent, List<UUID> attachmentIds);
   void deleteMessage(Long messageId, UUID requestId);
   void purgeChannelHistory(Long channelId, UUID requestId);
   List<MessageDto> enrichMessagesBatch(List<Message> messages);

@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
@@ -22,6 +23,7 @@ import com._labor.fakecord.domain.dto.MessageContext;
 import com._labor.fakecord.domain.dto.MessageDto;
 import com._labor.fakecord.domain.dto.MessageWindowDto;
 import com._labor.fakecord.domain.dto.ReplyPreviewDto;
+import com._labor.fakecord.domain.entity.Attachment;
 import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.domain.enums.MessageType;
@@ -32,6 +34,7 @@ import com._labor.fakecord.infrastructure.outbox.domain.payload.MessageCreatedPa
 import com._labor.fakecord.repository.ChannelMemberRepository;
 import com._labor.fakecord.repository.ChannelRepository;
 import com._labor.fakecord.repository.MessageRepository;
+import com._labor.fakecord.services.AttachmentService;
 import com._labor.fakecord.services.MessageBroadcaster;
 import com._labor.fakecord.services.MessageService;
 import com._labor.fakecord.services.UserProfileCache;
@@ -58,11 +61,12 @@ public class MessageServiceImpl implements MessageService{
   private final UserProfileCache profileCache;
   private final SocialGuard socialGuard;
   private final MessageMapper messageMapper;
+  private final AttachmentService attachmentService;
   
 
   @Override
   @Transactional
-  public Message sendMessage(Long channelId, UUID authorId, String content, String nonce, Long parentId) {
+  public Message sendMessage(Long channelId, UUID authorId, String content, String nonce, Long parentId, List<UUID> attachmentIds) {
     log.info("Sending message to channel {} by user {}", channelId, authorId);
 
      if (repository.existsByNonce(nonce)) {
@@ -92,6 +96,10 @@ public class MessageServiceImpl implements MessageService{
     .content(content)
     .nonce(nonce)
     .build();
+
+    if (attachmentIds != null && !attachmentIds.isEmpty()) {
+      attachmentService.linkAttachmentsToMessage(message, attachmentIds, authorId);
+    }
     
     Message saved = repository.save(message);
 
@@ -115,7 +123,7 @@ public class MessageServiceImpl implements MessageService{
 
   @Override
   @Transactional
-  public Message editMessage(Long messageId, UUID operantId, String newContent) {
+  public Message editMessage(Long messageId, UUID operantId, String newContent, List<UUID> attachmentIds) {
     messageValidator.validate(newContent);
 
     Message message = repository.findById(messageId)
@@ -127,6 +135,8 @@ public class MessageServiceImpl implements MessageService{
 
     message.setContent(newContent);
     message.onUpdate();
+
+    syncMessageAttachments(message, attachmentIds, operantId);
 
     Message saved = repository.save(message);
     broadcaster.broadcastMessageEvent(message, SocketEventType.MESSAGE_UPDATE);
@@ -326,5 +336,36 @@ public class MessageServiceImpl implements MessageService{
   private String truncateContent(String content) {
     if (content == null) return "";
     return content.length() > 25 ? content.substring(0, 22) + "..." : content;
+  }
+
+  private void syncMessageAttachments(Message message, List<UUID> newIds, UUID ownerId) {
+    if (newIds == null || newIds.isEmpty()) {
+      List<UUID> oldIds = message.getAttachments().stream()
+        .map(Attachment::getId)
+        .toList();
+      attachmentService.deleteAttachments(oldIds, ownerId);
+      return;
+    }
+
+    List<UUID> toDelete = message.getAttachments().stream()
+      .map(Attachment::getId)
+      .filter(id -> !newIds.contains(id))
+      .toList();
+
+    if (!toDelete.isEmpty()) {
+      attachmentService.deleteAttachments(newIds, ownerId);
+    }
+
+    Set<UUID> currentIds = message.getAttachments().stream()
+      .map(Attachment::getId)
+      .collect(Collectors.toSet());
+
+    List<UUID> toAdd = newIds.stream()
+      .filter(id -> !currentIds.contains(id))
+      .toList();
+    
+    if (!toAdd.isEmpty()) {
+      attachmentService.linkAttachmentsToMessage(message, toAdd, ownerId);
+    }
   }
 }

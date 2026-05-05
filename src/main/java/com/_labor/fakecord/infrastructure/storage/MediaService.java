@@ -10,4 +10,5 @@ import com._labor.fakecord.domain.enums.ImageType;
 public interface MediaService {
   UploadResponse getAvatarUploadUrl(UUID userId, ImageType type);
   UploadResponse getBannerUploadUrl(UUID userId, ImageType type);
+  UploadResponse prepareAttachment(UUID userId, String originalFileName, String contentType, long fileSize);
 }
