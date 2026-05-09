@@ -27,5 +27,4 @@ public class KafkaMediaOutboxHandler implements  OutboxHandler {
     log.info("Dispatching media processing task to Kafka for event: {}", event.getId());
     kafkaTemplate.send("media.processing", event.getAggregateId(), event.getPayload());
   }
-  
 }
