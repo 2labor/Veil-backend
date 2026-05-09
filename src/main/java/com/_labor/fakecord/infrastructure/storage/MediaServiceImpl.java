@@ -12,6 +12,7 @@ import com._labor.fakecord.domain.entity.UserProfile;
 import com._labor.fakecord.domain.enums.AttachmentStatus;
 import com._labor.fakecord.domain.enums.AttachmentType;
 import com._labor.fakecord.domain.enums.ImageType;
+import com._labor.fakecord.domain.enums.MediaContentType;
 import com._labor.fakecord.domain.enums.MediaType;
 import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com._labor.fakecord.repository.AttachmentRepository;
@@ -96,6 +97,12 @@ public class MediaServiceImpl implements MediaService {
   public UploadResponse prepareAttachment(UUID userId, String originalFileName, String contentType, long fileSize) {
     log.info("Preparing attachment upload for user: {} [file: {}]", userId, originalFileName);
 
+    MediaContentType mediaType = MediaContentType.fromMimeType(contentType);
+    
+    if (fileSize > 8 * 1024 * 1024) {
+      throw new IllegalArgumentException("File size exceeds 8MB limit");
+    } 
+
     UUID attachmentId = UUID.randomUUID();
 
     AttachmentType type = determineAttachmentType(contentType);
@@ -108,7 +115,7 @@ public class MediaServiceImpl implements MediaService {
       .ownerId(userId)
       .fileName(originalFileName)
       .storageName(storagePath)
-      .contentType(contentType)
+      .contentType(mediaType.getMimeType())
       .fileSize(fileSize)
       .attachmentType(type)
       .attachmentStatus(AttachmentStatus.PENDING)
@@ -128,8 +135,8 @@ public class MediaServiceImpl implements MediaService {
 
   private AttachmentType determineAttachmentType(String contentType) {
     if (contentType == null) return AttachmentType.DOCUMENT;
-    if (contentType.startsWith("/image")) return AttachmentType.IMAGE;
-    if (contentType.startsWith("/video")) return AttachmentType.VIDEO;
+    if (contentType.startsWith("image/")) return AttachmentType.IMAGE;
+    if (contentType.startsWith("video/")) return AttachmentType.VIDEO;
     return AttachmentType.DOCUMENT;
   }
 
