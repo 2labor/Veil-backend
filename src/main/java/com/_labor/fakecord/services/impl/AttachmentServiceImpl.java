@@ -22,10 +22,9 @@ import lombok.extern.slf4j.Slf4j;
 public class AttachmentServiceImpl implements AttachmentService {
 
   private final AttachmentRepository repository;
-  // private final Attachment
 
   @Override
-  public void linkAttachmentsToMessage(Message message, List<UUID> attachmentIds, UUID ownerId) {
+  public List<Attachment> linkAttachmentsToMessage(Message message, List<UUID> attachmentIds, UUID ownerId) {
     List<Attachment> attachments = repository.findAllById(attachmentIds);
 
     if (attachments.size() != attachmentIds.size()) {
@@ -34,21 +33,19 @@ public class AttachmentServiceImpl implements AttachmentService {
 
     for (Attachment attach : attachments) {
       if (!attach.getOwnerId().equals(ownerId)) {
-        log.error("Access Denied: User {} tried to link attachment {} owned by {}", ownerId, attach.getId(), attach.getOwnerId());
         throw new AccessDeniedException("User does not own the attachment: " + attach.getId());
-      }
-
-      if (attach.getAttachmentStatus() != AttachmentStatus.PENDING) {
-        throw new IllegalStateException("Attachment is not in PENDING state");
       }
 
       attach.setMessage(message);
       attach.setAttachmentStatus(AttachmentStatus.ACTIVE);
-
-      message.addAttachment(attach);
+      
+      if (message.getAttachments() != null) {
+        message.addAttachment(attach);
+      }
     }
 
     log.info("Successfully linked {} attachments to message {}", attachments.size(), message.getId());
+    return repository.saveAll(attachments);
   }
 
   @Override

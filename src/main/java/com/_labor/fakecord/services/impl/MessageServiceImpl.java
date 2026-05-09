@@ -4,11 +4,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
@@ -28,17 +25,18 @@ import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.domain.enums.MessageType;
 import com._labor.fakecord.domain.enums.SocketEventType;
-import com._labor.fakecord.domain.mappper.AttachmentMapper;
-import com._labor.fakecord.domain.mappper.MessageMapper;
 import com._labor.fakecord.infrastructure.id.IdGenerator;
+import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
+import com._labor.fakecord.infrastructure.outbox.domain.payload.MediaTaskPayload;
 import com._labor.fakecord.infrastructure.outbox.domain.payload.MessageCreatedPayload;
+import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com._labor.fakecord.repository.ChannelMemberRepository;
 import com._labor.fakecord.repository.ChannelRepository;
 import com._labor.fakecord.repository.MessageRepository;
 import com._labor.fakecord.services.AttachmentService;
 import com._labor.fakecord.services.MessageBroadcaster;
+import com._labor.fakecord.services.MessageEnricher;
 import com._labor.fakecord.services.MessageService;
-import com._labor.fakecord.services.UserProfileCache;
 import com._labor.fakecord.services.validation.ChannelAccessValidator;
 import com._labor.fakecord.services.validation.MessageValidator;
 import com._labor.fakecord.services.validation.SocialGuard;
@@ -59,11 +57,10 @@ public class MessageServiceImpl implements MessageService{
   private final MessageValidator messageValidator;
   private final ChannelAccessValidator accessValidator;
   private final KafkaTemplate<String, Object> kafkaTemplate;
-  private final UserProfileCache profileCache;
   private final SocialGuard socialGuard;
-  private final MessageMapper messageMapper;
-  private final AttachmentMapper attachmentMapper;
   private final AttachmentService attachmentService;
+  private final MessageEnricher enricher;
+  private final OutboxService outboxService;
   
 
   @Override
@@ -87,7 +84,6 @@ public class MessageServiceImpl implements MessageService{
 
     messageValidator.validate(content);
 
-
     long messageId = idGenerator.nextId();
     Message message = Message.builder()
     .id(messageId)
@@ -104,8 +100,22 @@ public class MessageServiceImpl implements MessageService{
     }
     
     Message saved = repository.save(message);
+    
+    if (attachmentIds != null && !attachmentIds.isEmpty()) {
+    List<Attachment> linkedAttachments = attachmentService.linkAttachmentsToMessage(message, attachmentIds, authorId);
+    
 
-    String authorName = profileCache.getUserProfile(authorId).displayName();
+    MediaTaskPayload payload = enricher.createMediaTaskPayload(authorId, linkedAttachments);
+    
+    if (!payload.items().isEmpty()){
+      outboxService.publish(authorId, OutboxEventType.MEDIA_ATTACHMENT_READY, payload);
+      log.info("DEBUG: outboxService.publish CALLED");
+    } else {
+      log.warn("DEBUG: outboxService.publish SKIPPED because payload is empty");
+    }
+}
+
+    String authorName = enricher.enricher(saved).author().displayName();
   
     String displayChannelName;
     if (messageContext.getChannelType() == ChannelType.DM) {
@@ -114,7 +124,7 @@ public class MessageServiceImpl implements MessageService{
       displayChannelName = messageContext.getChannelName();
     }
     
-    MessageCreatedPayload payload = createPayload(saved, messageContext, authorName);
+    MessageCreatedPayload payload = enricher.createPayload(saved, messageContext, authorName);
     
     kafkaTemplate.send("chat.messages", channelId.toString(), payload);
     broadcaster.broadcastMessageEvent(saved, SocketEventType.MESSAGE_CREATE);
@@ -245,7 +255,7 @@ public class MessageServiceImpl implements MessageService{
     if (afterList.size() > halfLimit) afterList.remove(afterList.size() - 1);
     combined.addAll(afterList);
     
-    List<MessageDto> enrichedDto = enrichMessagesBatch(combined);
+    List<MessageDto> enrichedDto = enricher.enrichBatch(combined);
 
     return new MessageWindowDto(
       enrichedDto,
@@ -257,31 +267,14 @@ public class MessageServiceImpl implements MessageService{
 
   @Override
   public List<MessageDto> enrichMessagesBatch(List<Message> messages) {
-    if (messages.isEmpty()) return List.of();
-
-    var parentIds = messages.stream()
-    .map(Message::getParentId)
-    .filter(Objects::nonNull)
-    .collect(Collectors.toSet());
-
-    if (parentIds.isEmpty()) {
-      return messageMapper.toListDto(messages, Map.of());
-    }
-
-    Map<Long, ReplyPreviewDto> previews = repository.findAllById(parentIds).stream()
-      .collect(Collectors.toMap(
-        Message::getId,
-        this::buildReplyPreviewSafely
-      ));
-
-    return messageMapper.toListDto(messages, previews);
+    return enricher.enrichBatch(messages);
   }
 
   @Override
   public ReplyPreviewDto getReplyPreviewForSingleMessage(Long parentId) {
   if (parentId == null) return null;
   return repository.findById(parentId)
-    .map(this::buildReplyPreviewSafely)
+    .map(enricher::buildReplyPreview)
     .orElse(null);
   }
 
@@ -302,43 +295,7 @@ public class MessageServiceImpl implements MessageService{
       log.error("Security alert: User tried to reply to message {} which doesn't exist in channel {}", 
         parentId, currentChannelId);
       throw new RuntimeException("PARENT_MESSAGE_NOT_FOUND_IN_CHANNEL");
-    }
-  }
-
-  private MessageCreatedPayload createPayload(Message saved, MessageContext ctx, String authorName) {
-    return new MessageCreatedPayload(
-      saved.getId(),
-      saved.getChannelId(),
-      ctx.getServiceId(),
-      saved.getAuthorId(),
-      authorName,
-      saved.getContent(),
-      saved.getParentId(),
-      attachmentMapper.toListDto(saved.getAttachments()),
-      null,
-      System.currentTimeMillis(),
-      ctx.getChannelType(),
-      ctx.getChannelName()
-    );
-  }
-
-  private ReplyPreviewDto buildReplyPreviewSafely(Message parent) {
-    try {
-        var profile = profileCache.getUserProfile(parent.getAuthorId());
-        return new ReplyPreviewDto(
-          profile.displayName(),
-          profile.avatarUrl(),
-          truncateContent(parent.getContent())
-        );
-    } catch (Exception e) {
-      log.error("Failed to build reply preview for message {}", parent.getId(), e);
-      return new ReplyPreviewDto("Unknown User", null, truncateContent(parent.getContent()));
-    }
-  }
-
-  private String truncateContent(String content) {
-    if (content == null) return "";
-    return content.length() > 25 ? content.substring(0, 22) + "..." : content;
+    } 
   }
 
   private void syncMessageAttachments(Message message, List<UUID> newIds, UUID ownerId) {
