@@ -80,9 +80,8 @@ public class MessageServiceImpl implements MessageService{
       validateParentMessage(parentId, channelId);
     }
 
-    socialGuard.validateInteraction(messageContext, authorId);    
-
-    messageValidator.validate(content);
+    socialGuard.validateInteraction(messageContext, authorId);
+    messageValidator.validate(content, validateAttachment(attachmentIds));
 
     long messageId = idGenerator.nextId();
     Message message = Message.builder()
@@ -136,7 +135,7 @@ public class MessageServiceImpl implements MessageService{
   @Override
   @Transactional
   public Message editMessage(Long messageId, UUID operantId, String newContent, List<UUID> attachmentIds) {
-    messageValidator.validate(newContent);
+    messageValidator.validate(newContent, validateAttachment(attachmentIds));
 
     Message message = repository.findById(messageId)
       .orElseThrow(() -> new RuntimeException("MESSAGE_NOT_FOUND"));
@@ -327,5 +326,9 @@ public class MessageServiceImpl implements MessageService{
     if (!toAdd.isEmpty()) {
       attachmentService.linkAttachmentsToMessage(message, toAdd, ownerId);
     }
+  }
+
+  private boolean validateAttachment(List<UUID> attachmentIds) {
+    return attachmentIds != null && !attachmentIds.isEmpty();
   }
 }
