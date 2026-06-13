@@ -38,9 +38,7 @@ public class MessageMapperImpl implements MessageMapper {
 
   @Override
   public MessageDto toDto(Message message, UserProfileShort authorDto, ReplyPreviewDto parentPreview) {
-
     if (null == message) return null;
-
   
     return new MessageDto(
       String.valueOf(message.getId()),
