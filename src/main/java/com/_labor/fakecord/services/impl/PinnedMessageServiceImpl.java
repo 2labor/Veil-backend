@@ -14,10 +14,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com._labor.fakecord.domain.dto.MessageDto;
+import com._labor.fakecord.domain.dto.PinnedNotificationPayload;
+import com._labor.fakecord.domain.dto.UnpinnedNotificationPayload;
 import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.entity.PinnedMessage;
+import com._labor.fakecord.domain.enums.MessageType;
+import com._labor.fakecord.domain.enums.SocketEventType;
 import com._labor.fakecord.repository.MessageRepository;
 import com._labor.fakecord.repository.PinnedMessageRepository;
+import com._labor.fakecord.services.MessageBroadcaster;
 import com._labor.fakecord.services.MessageService;
 import com._labor.fakecord.services.PinnedMessageService;
 import com._labor.fakecord.services.validation.ChannelAccessValidator;
@@ -34,6 +39,7 @@ public class PinnedMessageServiceImpl implements PinnedMessageService {
   private final MessageRepository messageRepository;
   private final ChannelAccessValidator accessValidator;
   private final MessageService messageService;
+  private final MessageBroadcaster broadcaster;
 
   @Value("${app.pinned-messages.max-limit}")
   private int MAX_PINNED_MESSAGES;
@@ -65,6 +71,32 @@ public class PinnedMessageServiceImpl implements PinnedMessageService {
       .pinnedBy(operatorId)
       .build();
     repo.save(pinnedMessage);
+
+    messageService.sendSystemMessage(channelId, operatorId, MessageType.MESSAGE_PINNED, String.valueOf(messageId));
+
+    boolean hasAttachment = message.getAttachments() != null && !message.getAttachments().isEmpty();
+    String attachmentUrl = null;
+    String content = message.getContent();
+
+    if (hasAttachment) {
+      var attachment = message.getAttachments().get(0);
+      attachmentUrl = attachment.getThumbnailUrl();
+
+      if (content == null || content.isBlank()) {
+        content = "Image";
+      }
+    }
+
+    PinnedNotificationPayload pinnedPayload = new PinnedNotificationPayload(
+      String.valueOf(messageId),
+      String.valueOf(channelId),
+      content,
+      hasAttachment,
+      attachmentUrl
+    ); 
+
+    broadcaster.broadcastSystemEvent(channelId, SocketEventType.CHANNEL_MESSAGE_PINNED, pinnedPayload);
+    log.info("Successfully pinned message {} with media context.", messageId);
   }
 
   @Override
@@ -81,6 +113,36 @@ public class PinnedMessageServiceImpl implements PinnedMessageService {
     }
 
     repo.delete(pinnedMessage);
+
+    Optional<PinnedMessage> nextPin = repo.findFirstByChannelIdOrderByPinnedAtDesc(channelId);
+    PinnedNotificationPayload fallbackPayload = null;
+    if (nextPin.isPresent()) {
+      Message nextMessage = messageRepository.findById(nextPin.get().getMessageId())
+        .orElseThrow(() -> new IllegalArgumentException("MESSAGE_NOT_FOUND"));
+
+      boolean hasAttachment = nextMessage.getAttachments() != null && !nextMessage.getAttachments().isEmpty();
+      String attachmentUrl = hasAttachment ? nextMessage.getAttachments().get(0).getThumbnailUrl() : null;
+      String context = nextMessage.getContent();
+      if (hasAttachment && (context == null || context.isBlank())) {
+        context = "Image";
+      }
+
+      fallbackPayload = new PinnedNotificationPayload(
+        String.valueOf(nextMessage.getId()),
+        String.valueOf(nextMessage.getChannelId()),
+        context,
+        hasAttachment,
+        attachmentUrl
+      );
+    }
+
+    UnpinnedNotificationPayload unpinPayload = new UnpinnedNotificationPayload(
+      String.valueOf(messageId),
+      String.valueOf(channelId),
+      fallbackPayload
+    );
+
+    broadcaster.broadcastSystemEvent(channelId, SocketEventType.CHANNEL_MESSAGE_UNPINNED, unpinPayload);
   }
 
   @Override
