@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 public record ChannelMemberEventPayload(
   UUID operatorId,
   String operatorName,
-  UUID targetId,
+  UUID targetId,  
   String targetName,
   @JsonSerialize(using = ToStringSerializer.class)
   Long channelId,
