@@ -72,7 +72,7 @@ public class RedisConfig {
     container.addMessageListener(notificationReceiver, new PatternTopic("channel:events:*"));
     container.addMessageListener(notificationReceiver, new PatternTopic("users:notifications:*"));
     container.addMessageListener(typingListenerAdapter, new PatternTopic("channel:typing:*"));
-
+    
     container.setTaskExecutor(Executors.newFixedThreadPool(4));
     return container;
   }

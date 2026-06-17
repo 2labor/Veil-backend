@@ -43,7 +43,11 @@ public class ReactionHotPathProcessor {
     Long removed = redisTemplate.opsForSet().remove(userSetKey, userIdStr);
 
     if (removed != null && removed > 0) {
-      redisTemplate.opsForHash().increment(counterHashKey, emojiFiled, -1);
+      Long newCounter = redisTemplate.opsForHash().increment(counterHashKey, emojiFiled, -1);
+
+      if (newCounter == null || newCounter <= 0) {
+        redisTemplate.opsForHash().delete(counterHashKey, emojiFiled);
+      }
       action = ReactionAction.REMOVE;
     } else {
       redisTemplate.opsForSet().add(userSetKey, userIdStr);
