@@ -15,7 +15,6 @@ import com._labor.fakecord.domain.dto.MessageReactionsResponse;
 import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.events.ReactionEvent;
 import com._labor.fakecord.infrastructure.cache.ReactionHotPathProcessor;
-import com._labor.fakecord.repository.MessageReactionRepository;
 import com._labor.fakecord.repository.MessageRepository;
 import com._labor.fakecord.services.ReactionService;
 import com._labor.fakecord.services.validation.ChannelAccessValidator;

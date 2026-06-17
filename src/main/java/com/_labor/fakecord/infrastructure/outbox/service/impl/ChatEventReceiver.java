@@ -17,7 +17,7 @@ public class ChatEventReceiver {
   private final ObjectMapper objectMapper;
 
   public void handleEvent(SocketEvent<?> event) {
-    String destination = String.format("/topic/channels.%s", event.getC());
+    String destination = String.format("/topic/channel.%s", event.getC());
 
     log.debug("Routing Redis event [{}] to WS: {}", event.getT(), destination);
 
@@ -27,9 +27,6 @@ public class ChatEventReceiver {
       messagingTemplate.convertAndSend(json, destination);
     } catch (Exception e) {
       log.error("Failed to serialize/send event to WS: {}", e.getMessage(), e);
-      messagingTemplate.convertAndSend(destination, event);
     }
-
-    messagingTemplate.convertAndSend(destination, event);
   }
 }
