@@ -24,7 +24,7 @@ public class ChatEventReceiver {
     try {
       String json = objectMapper.writeValueAsString(event);
 
-      messagingTemplate.convertAndSend(json, destination);
+      messagingTemplate.convertAndSend(destination, json);
     } catch (Exception e) {
       log.error("Failed to serialize/send event to WS: {}", e.getMessage(), e);
     }

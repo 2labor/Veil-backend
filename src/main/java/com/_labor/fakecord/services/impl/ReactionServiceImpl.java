@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.security.access.AccessDeniedException;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,7 +50,8 @@ public class ReactionServiceImpl implements ReactionService {
       log.warn("User {} tried to clear reactions for message {} without rights", operatorId, messageId);
       throw new AccessDeniedException("You are not allowed to clear reactions for this message");
     }
-    hotProcessor.processClearAll(messageId);
+    
+    hotProcessor.processClearAll(messageId, operatorId);
     log.info("Successfully triggered clear_all for message {} by operator {}", messageId, operatorId);
   }
 
