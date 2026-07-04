@@ -62,7 +62,7 @@ public class ReactionHotPathProcessor {
     return event;
   }
 
-  public void processClearAll(Long messageId) {
+  public void processClearAll(Long messageId, UUID userId) {
     String countersHashKey = String.format("%s:counters:%d", cacheKey, messageId);
     Set<Object> emojiFields = redisTemplate.opsForHash().keys(countersHashKey);
 
@@ -74,7 +74,9 @@ public class ReactionHotPathProcessor {
     }
     redisTemplate.delete(countersHashKey);
 
-    ReactionEvent event = new ReactionEvent(null, messageId, null, null, ReactionAction.CLEAR_ALL);
+    Long eventId = idGenerator.nextId();
+
+    ReactionEvent event = new ReactionEvent(eventId, messageId, userId, -1L, ReactionAction.CLEAR_ALL);
     dispatchEvent(messageId, event);
   }
 
