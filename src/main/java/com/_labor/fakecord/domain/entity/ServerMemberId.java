@@ -6,6 +6,7 @@ import java.util.UUID;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,6 +17,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @EqualsAndHashCode
+@AllArgsConstructor
 @Table(name = "server_member_id")
 public class ServerMemberId implements Serializable {
   @Column(name = "user_id", nullable = false)
