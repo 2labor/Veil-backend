@@ -11,10 +11,10 @@ import com._labor.fakecord.domain.dto.ConnectionStatusDto;
 import com._labor.fakecord.domain.dto.spotify.SpotifyActivity;
 import com._labor.fakecord.domain.dto.spotify.SpotifyConnectionState;
 import com._labor.fakecord.domain.enums.ConnectionProvider;
+import com._labor.fakecord.domain.mappper.SpotifyMapper;
 import com._labor.fakecord.infrastructure.integration.spotify.SpotifyClient;
 import com._labor.fakecord.infrastructure.integration.spotify.SpotifyProviderStrategy;
 import com._labor.fakecord.infrastructure.integration.spotify.SpotifyTokenService;
-import com._labor.fakecord.domain.mappper.SpotifyMapper;
 import com._labor.fakecord.repository.UserConnectionRepository;
 
 import lombok.RequiredArgsConstructor;
