@@ -13,6 +13,7 @@ import com._labor.fakecord.infrastructure.id.IdGenerator;
 import com._labor.fakecord.repository.ServerMemberRepository;
 import com._labor.fakecord.repository.ServerRepository;
 import com._labor.fakecord.services.ChannelService;
+import com._labor.fakecord.services.ServerRoleService;
 import com._labor.fakecord.services.ServerService;
 
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class ServerServiceImpl implements ServerService {
   private final ServerMemberRepository memberRepository;
   private final IdGenerator idGenerator;
   private final ChannelService channelService;
+  private final ServerRoleService rolesService;
 
   @Override
   @Transactional
@@ -38,6 +40,8 @@ public class ServerServiceImpl implements ServerService {
       .build();
     Server savedServer = repo.save(server);
     
+    rolesService.createDefaultName(server.getId());
+
     ServerMemberId memberId = new ServerMemberId(operatorId, savedServer.getId());
     ServerMember member = ServerMember.builder()
       .id(memberId)
