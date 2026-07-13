@@ -8,6 +8,6 @@ import com._labor.fakecord.domain.entity.ServerMember;
 import com._labor.fakecord.domain.entity.ServerMemberId;
 
 public interface ServerMemberRepository extends JpaRepository<ServerMember, ServerMemberId> {
-  ServerMember findByUserId(UUID userId);
-  ServerMember findByServerId(Long serverId);
+  // ServerMember findByUserId(UUID userId);
+  // ServerMember findByServerId(Long serverId);
 }
