@@ -28,7 +28,7 @@ import lombok.Setter;
     @UniqueConstraint(name = "uc_server_emoji_name", columnNames = {"server_id", "name"})
   },
   indexes = {
-    @Index(name = "idx_emojis_server_id", columnList = "service_id")
+    @Index(name = "idx_emojis_server_id", columnList = "server_id")
   }
 )
 public class Emoji {
