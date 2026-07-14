@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com._labor.fakecord.domain.entity.Channel;
 import com._labor.fakecord.domain.entity.Server;
 import com._labor.fakecord.domain.entity.ServerMember;
 import com._labor.fakecord.domain.entity.ServerMemberId;
@@ -48,7 +49,9 @@ public class ServerServiceImpl implements ServerService {
       .build();
     memberRepository.save(member);
 
-    channelService.createChannel(savedServer.getId(), operatorId, "general", ChannelType.GUILD_TEXT);
+    Channel parentCategory = channelService.createChannel(savedServer.getId(), operatorId, "general-category", ChannelType.GUILD_CATEGORY, null);
+
+    channelService.createChannel(savedServer.getId(), operatorId, "general", ChannelType.GUILD_TEXT, parentCategory.getId());
 
     return savedServer;
   }

@@ -17,6 +17,7 @@ import com._labor.fakecord.domain.entity.Channel;
 import io.lettuce.core.dynamic.annotation.Param;
 
 public interface ChannelRepository extends JpaRepository<Channel, Long>{
+  long countByServerId(Long serverId);
   List<Channel> findAllByServerIdOrderByPositionAsc(Long serverId);
 
   @Modifying

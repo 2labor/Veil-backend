@@ -83,10 +83,11 @@ public class ChannelController {
     @PathVariable Long serverId,
     @RequestParam String name,
     @RequestParam ChannelType type,
+    @RequestParam Long parentId,
     Principal principal
   ) {
     UUID creatorId = getId(principal);
-    Channel channel = service.createChannel(serverId, creatorId, name, type);
+    Channel channel = service.createChannel(serverId, creatorId, name, type, parentId);
     return ResponseEntity.ok(mapper.toDmDto(channel));
   }
 
