@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 import com._labor.fakecord.domain.dto.ChannelDto;
+import com._labor.fakecord.domain.dto.ChannelResponseDto;
 import com._labor.fakecord.domain.dto.DirectMessageChannelDto;
 import com._labor.fakecord.domain.dto.GroupChannelDto;
 import com._labor.fakecord.domain.dto.UserProfileShort;
@@ -67,18 +68,29 @@ public class ChannelMapperImpl implements ChannelMapper {
       .collect(Collectors.toList());
   }
 
-    @Override
-    public GroupChannelDto toGroupDto(Channel entity, int unreadCount) {
-      if (entity == null) return null;
+  @Override
+  public GroupChannelDto toGroupDto(Channel entity, int unreadCount) {
+    if (entity == null) return null;
 
-      return GroupChannelDto.builder()
-        .id(entity.getId())
-        .name(entity.getName())
-        .ownerId(entity.getOwnerId())
-        .lastMessageContent(entity.getLastMessageContent())
-        .lastActivity(entity.getLastActivityAt().toEpochMilli())
-        .unreadCount(unreadCount)
-        .build();
-    }
+    return GroupChannelDto.builder()
+      .id(entity.getId())
+      .name(entity.getName())
+      .ownerId(entity.getOwnerId())
+      .lastMessageContent(entity.getLastMessageContent())
+      .lastActivity(entity.getLastActivityAt().toEpochMilli())
+      .unreadCount(unreadCount)
+      .build();
+  }
+
+  public static ChannelResponseDto toResponseDto(Channel entity) {
+    if (entity == null) return null;
+
+    return new ChannelResponseDto(
+      entity.getId(),
+      entity.getServerId(),
+      entity.getType(),
+      entity.getName(), 
+      entity.getPosition());
+  }
   
 }

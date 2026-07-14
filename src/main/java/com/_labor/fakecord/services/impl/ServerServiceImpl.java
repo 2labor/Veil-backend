@@ -1,10 +1,12 @@
 package com._labor.fakecord.services.impl;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com._labor.fakecord.domain.entity.Channel;
 import com._labor.fakecord.domain.entity.Server;
 import com._labor.fakecord.domain.entity.ServerMember;
 import com._labor.fakecord.domain.entity.ServerMemberId;
@@ -17,9 +19,11 @@ import com._labor.fakecord.services.ServerRoleService;
 import com._labor.fakecord.services.ServerService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ServerServiceImpl implements ServerService {
   private final ServerRepository repo;
   private final ServerMemberRepository memberRepository;
@@ -48,8 +52,15 @@ public class ServerServiceImpl implements ServerService {
       .build();
     memberRepository.save(member);
 
-    channelService.createChannel(savedServer.getId(), operatorId, "general", ChannelType.GUILD_TEXT);
+    Channel parentCategory = channelService.createChannel(savedServer.getId(), operatorId, "general-category", ChannelType.GUILD_CATEGORY, null);
+
+    channelService.createChannel(savedServer.getId(), operatorId, "general", ChannelType.GUILD_TEXT, parentCategory.getId());
 
     return savedServer;
+  }
+
+  @Override
+  public List<Server> getUserServers(UUID userId) {
+    return repo.findByUserId(userId);
   }
 }

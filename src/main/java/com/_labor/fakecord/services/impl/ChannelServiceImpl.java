@@ -1,6 +1,7 @@
 package com._labor.fakecord.services.impl;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com._labor.fakecord.domain.dto.ChannelResponseDto;
 import com._labor.fakecord.domain.entity.Channel;
 import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.domain.enums.NotificationPriority;
@@ -52,24 +54,52 @@ public class ChannelServiceImpl implements ChannelService {
 
   @Override
   @Transactional
-  public Channel createChannel(Long serverId, UUID creatorId, String name, ChannelType type) {
+  public Channel createChannel(Long serverId, UUID creatorId, String name, ChannelType type, Long parentId) {
     log.info("User {} is creating channel '{}' (Type: {})", creatorId, name, type);
 
+    validateServerAssociation(serverId, type);
+
+    Channel parentCategory = null;
+    if (parentId != null) {
+      if (type == ChannelType.GUILD_CATEGORY) {
+        throw new IllegalArgumentException("A category cannot be placed inside another category");
+      }
+
+      parentCategory = repository.findById(parentId)
+        .orElseThrow(() -> new IllegalArgumentException("No category with id:" + parentId));
+
+      validateParentCategory(parentCategory, serverId);
+    }
+
     Long channelId = idGenerator.nextId();
-    Integer position = (serverId != null) ? repository.findAllByServerIdOrderByPositionAsc(serverId).size() : null;
+    Integer position = (serverId != null) ? (int) repository.countByServerId(serverId) : null;
 
-    Channel channel = Channel.builder()
-      .id(channelId)
-      .serverId(serverId)
-      .name(name)
-      .type(type)
-      .lastActivityAt(Instant.now())
-      .build();
-    
+    Channel channel = switch (type) {
+      case GUILD_CATEGORY -> Channel.builder()
+        .id(channelId)
+        .serverId(serverId)
+        .name(name)
+        .type(type)
+        .build();
+      
+      case GROUP_DM, GUILD_TEXT, DM, GUILD_VOICE -> Channel.builder()
+        .id(channelId)
+        .serverId(serverId)
+        .name(name)
+        .type(type)
+        .parent(parentCategory)
+        .lastActivityAt(Instant.now())
+        .build();
+
+      default -> throw new IllegalArgumentException("Unsupported channel type: " + type);
+    };
+
     if (position != null) channel.setPosition(position);
-
     Channel savedChannel = repository.save(channel);
-    memberService.addMember(channelId, creatorId);
+
+    if (type != ChannelType.GUILD_CATEGORY) {
+      memberService.addMember(channelId, creatorId);
+    }
 
     return savedChannel;
   }
@@ -79,7 +109,7 @@ public class ChannelServiceImpl implements ChannelService {
   public Channel startDirectMessage(UUID creatorId, UUID recipientId) {
     return repository.findExistingDM(creatorId, recipientId)
       .orElseGet(() -> {
-        Channel dm = createChannel(null, creatorId, null, ChannelType.DM);
+        Channel dm = createChannel(null, creatorId, null, ChannelType.DM, null);
         memberService.addMember(dm.getId(), recipientId);
 
         SystemNotification<ChannelCreatedPayload> notification = SystemNotification.of(
@@ -197,5 +227,33 @@ public class ChannelServiceImpl implements ChannelService {
     repository.delete(channel);
 
     log.info("Channel {} successfully deleted by {}", channelId, operatorId);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<Channel> getServerChannels(Long serverId) {
+    return repository.findAllByServerIdOrderByPositionAsc(serverId);
+  }
+
+  private void validateServerAssociation(Long serverId, ChannelType type) {
+    if (type.isGuildType()) {
+      if (serverId == null) {
+        throw new IllegalArgumentException("Server ID cannot be null for guild channels (type: " + type + ")");
+      }
+    } else {
+      if (serverId != null) {
+        throw new IllegalArgumentException("Server ID must be null for non-guild channels (type: " + type + ")");
+      }
+    }
+  }
+
+  private void validateParentCategory(Channel parent, Long currentServerId) {
+    if (parent.getType() != ChannelType.GUILD_CATEGORY) {
+      throw new IllegalArgumentException("Parent channel cannot be different form " + ChannelType.GUILD_CATEGORY);
+    }
+
+    if (!parent.getServerId().equals(currentServerId)) {
+      throw new IllegalArgumentException("Parent channel cannot be on different server with children channel!");
+    }
   }
 }
