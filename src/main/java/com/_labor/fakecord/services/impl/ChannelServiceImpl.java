@@ -1,6 +1,7 @@
 package com._labor.fakecord.services.impl;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com._labor.fakecord.domain.dto.ChannelResponseDto;
 import com._labor.fakecord.domain.entity.Channel;
 import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.domain.enums.NotificationPriority;
@@ -225,6 +227,12 @@ public class ChannelServiceImpl implements ChannelService {
     repository.delete(channel);
 
     log.info("Channel {} successfully deleted by {}", channelId, operatorId);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<Channel> getServerChannels(Long serverId) {
+    return repository.findAllByServerIdOrderByPositionAsc(serverId);
   }
 
   private void validateServerAssociation(Long serverId, ChannelType type) {

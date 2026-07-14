@@ -1,5 +1,6 @@
 package com._labor.fakecord.services.impl;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -18,9 +19,11 @@ import com._labor.fakecord.services.ServerRoleService;
 import com._labor.fakecord.services.ServerService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ServerServiceImpl implements ServerService {
   private final ServerRepository repo;
   private final ServerMemberRepository memberRepository;
@@ -54,5 +57,10 @@ public class ServerServiceImpl implements ServerService {
     channelService.createChannel(savedServer.getId(), operatorId, "general", ChannelType.GUILD_TEXT, parentCategory.getId());
 
     return savedServer;
+  }
+
+  @Override
+  public List<Server> getUserServers(UUID userId) {
+    return repo.findByUserId(userId);
   }
 }

@@ -15,6 +15,7 @@ public interface ChannelService {
   Channel createGroupChat(UUID creatorId, List<UUID> participantIds, String name);
   List<Channel> getChannelsByServer(Long serverId);
   Slice<Channel> getUserDirectMessages(UUID userId, Pageable pageable);
+  List<Channel> getServerChannels(Long serverId);
   void updateLastActivity(Long channelId);
   void renameChannel(Long channelId, String newName);
   void reorderChannels(Long serverId, List<Long> channelIds);
