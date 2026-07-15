@@ -13,7 +13,7 @@ public interface ChannelService {
   Channel createChannel(Long serverId, UUID creatorId, String name, ChannelType type, Long parentId);  
   Channel startDirectMessage(UUID creatorId, UUID recipientId);
   Channel createGroupChat(UUID creatorId, List<UUID> participantIds, String name);
-  List<Channel> getChannelsByServer(Long serverId);
+  List<Channel> getChannelsByServer(Long serverId, UUID userId);
   Slice<Channel> getUserDirectMessages(UUID userId, Pageable pageable);
   List<Channel> getServerChannels(Long serverId);
   void updateLastActivity(Long channelId);

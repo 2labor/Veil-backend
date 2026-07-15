@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +34,7 @@ import com._labor.fakecord.services.ChannelMemberService;
 import com._labor.fakecord.services.ChannelService;
 import com._labor.fakecord.services.MessageBroadcaster;
 import com._labor.fakecord.services.NotificationService;
+import com._labor.fakecord.services.ServerMemberService;
 import com._labor.fakecord.services.UserProfileCache;
 
 import lombok.RequiredArgsConstructor;
@@ -51,6 +53,7 @@ public class ChannelServiceImpl implements ChannelService {
   private final ChannelMapper mapper;
   private final UserProfileCache profileCache;
   private final UserProfileMapper profileMapper;
+  private final ServerMemberService serverMemberService;
 
   @Override
   @Transactional
@@ -166,8 +169,17 @@ public class ChannelServiceImpl implements ChannelService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<Channel> getChannelsByServer(Long serverId) {
-    return repository.findAllByServerIdOrderByPositionAsc(serverId);
+  public List<Channel> getChannelsByServer(Long serverId, UUID userId) {
+    List<Channel> channels = repository.findAllByServerIdAndUserId(serverId, userId);
+
+    if (channels.isEmpty()) {
+      boolean isUserMember = serverMemberService.checkIsUserMember(serverId, userId);
+      if (!isUserMember) {
+        throw new AccessDeniedException("You do not have permission to view this server's channels.");
+      }
+    }
+
+    return channels;
   }
 
   @Override
