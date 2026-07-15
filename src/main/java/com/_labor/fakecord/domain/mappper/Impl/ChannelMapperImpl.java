@@ -82,7 +82,8 @@ public class ChannelMapperImpl implements ChannelMapper {
       .build();
   }
 
-  public static ChannelResponseDto toResponseDto(Channel entity) {
+  @Override
+  public ChannelResponseDto toResponseDto(Channel entity) {
     if (entity == null) return null;
 
     return new ChannelResponseDto(
@@ -90,7 +91,8 @@ public class ChannelMapperImpl implements ChannelMapper {
       entity.getServerId(),
       entity.getType(),
       entity.getName(), 
-      entity.getPosition());
+      entity.getPosition(),
+      entity.getParent() != null ? entity.getParent().getId() : null);
   }
   
 }

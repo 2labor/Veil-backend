@@ -44,6 +44,20 @@ public interface ChannelRepository extends JpaRepository<Channel, Long>{
   """)
   Optional<Channel> findExistingDM(UUID userA, UUID userB);
 
+  @Query(
+    "SELECT c FROM Channel c " +
+    "WHERE c.serverId = :serverId " +
+    "AND EXISTS (" +
+    "  SELECT 1 FROM ServerMember sm " +
+    "  WHERE sm.id.serverId = :serverId AND sm.id.userId = :userId" +
+    ") " +
+    "ORDER BY c.position ASC"
+  )
+  List<Channel> findAllByServerIdAndUserId(
+      @Param("serverId") Long serverId, 
+      @Param("userId") UUID userId
+  );
+
   @Modifying
   @Query("UPDATE Channel c SET c.lastMessageId = :msgId, c.lastActivityAt = :now, c.lastMessageContent = :preview WHERE c.id = :id")
   void updateChannelActivity(Long id, Long msgId, Instant now, String preview);
