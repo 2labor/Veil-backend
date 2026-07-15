@@ -15,15 +15,6 @@ public record ChannelResponseDto(
   ChannelType type,
   String name,
   Integer position, 
-  List<ChannelResponseDto> children
-) {
-  public ChannelResponseDto(
-    Long id,
-    Long serverId,
-    ChannelType type,
-    String name,
-    Integer position
-  ) {
-    this(id, serverId, type, name, position, new ArrayList<>());
-  }
-}
+  @JsonSerialize(using = ToStringSerializer.class)
+  Long parentId
+) {}

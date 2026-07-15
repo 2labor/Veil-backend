@@ -9,7 +9,10 @@ public record ChannelDto(
   Long id,
   String name,
   ChannelType type,
+  @JsonSerialize(using = ToStringSerializer.class)
   Long serverId,
+  @JsonSerialize(using = ToStringSerializer.class)
   Long lastMessageId,
+  @JsonSerialize(using = ToStringSerializer.class)
   Long lastActivity
 ) {}

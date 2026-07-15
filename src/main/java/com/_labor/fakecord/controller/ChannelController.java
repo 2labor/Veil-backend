@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com._labor.fakecord.domain.dto.ChannelDto;
+import com._labor.fakecord.domain.dto.ChannelResponseDto;
 import com._labor.fakecord.domain.dto.DirectMessageChannelDto;
 import com._labor.fakecord.domain.dto.GroupChannelDto;
 import com._labor.fakecord.domain.dto.UserProfileFullDto;
@@ -42,14 +43,6 @@ public class ChannelController {
   private final ChannelMapper mapper;
   private final UserProfileMapper profileMapper;
   private final UserProfileCache profileCache;
-
-  @GetMapping("/server/{serverId}")
-  public ResponseEntity<List<ChannelDto>> getServerChannel(
-    @PathVariable Long serverId
-  ) {
-    List<Channel> channels = service.getChannelsByServer(serverId);
-    return ResponseEntity.ok(mapper.toDtoList(channels));
-  }
 
   @GetMapping("/me")
   public ResponseEntity<List<?>> getMyDirectMessage(
@@ -76,6 +69,21 @@ public class ChannelController {
     .toList();
 
     return ResponseEntity.ok(dtos);
+  }
+
+  @GetMapping("/server/{serverId}")
+  public ResponseEntity<List<ChannelResponseDto>> getServerChannels(
+    @PathVariable Long serverId,
+    Principal principal
+  ) {
+    UUID userId = getId(principal);
+    List<Channel> channels = service.getChannelsByServer(serverId, userId);
+
+    List<ChannelResponseDto> channelsDto = channels.stream()
+      .map(mapper::toResponseDto)
+    .toList();
+
+    return ResponseEntity.ok(channelsDto);
   }
 
   @PostMapping("/server/{serverId}")
