@@ -1,6 +1,7 @@
 package com._labor.fakecord.domain.entity;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -58,5 +59,16 @@ public class ServerMember {
 
   public void removeRole(ServerRole role) {
     this.roles.remove(role);
+  }
+
+  public ServerRole getTopRole() {
+    if (roles == null || roles.isEmpty()) {
+      return null;
+    }
+
+    return roles.stream()
+      .filter(role -> Boolean.TRUE.equals(role.isHoist()))
+      .max(Comparator.comparingInt(ServerRole::getPosition))
+      .orElse(null);
   }
 }
