@@ -44,7 +44,7 @@ public class ServerServiceImpl implements ServerService {
       .build();
     Server savedServer = repo.save(server);
     
-    rolesService.createDefaultName(server.getId());
+    rolesService.createDefaultRole(server.getId());
 
     ServerMemberId memberId = new ServerMemberId(operatorId, savedServer.getId());
     ServerMember member = ServerMember.builder()

@@ -2,6 +2,7 @@ package com._labor.fakecord.services.impl;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.domain.entity.ServerRole;
@@ -15,15 +16,21 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class ServerRoleServiceIml implements ServerRoleService {
+  @Value("${veil.default-role.role-name}")
+  private String name;
+
+  @Value("${veil.default-role.role-color}")
+  private String hexColor;
+
+  @Value("${veil.default-role.role-position}")
+  private Integer position;
 
   private final ServerRolesRepository repository;
   private final IdGenerator idGenerator;
 
   @Override
-  public ServerRole createDefaultName(Long serverId) {
+  public ServerRole createDefaultRole(Long serverId) {
     Long roleId = idGenerator.nextId();
-    String name = "everyone";
-    String hexColor = "#99AAB5";  
   
     Long rolePermissions = ServerRolePermissions.pack(List.of(
       ServerRolePermissions.READ_CHANNEL,
@@ -35,9 +42,10 @@ public class ServerRoleServiceIml implements ServerRoleService {
       .id(roleId)
       .serverId(serverId)
       .name(name)
-      .isDisplayable(false)
+      .hoist(false)
       .colorHex(hexColor)
       .permissions(rolePermissions)
+      .position(position)
       .build();
 
     return repository.save(defaultRole);

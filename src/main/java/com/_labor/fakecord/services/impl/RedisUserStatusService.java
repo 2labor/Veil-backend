@@ -1,6 +1,9 @@
 package com._labor.fakecord.services.impl;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -36,7 +39,7 @@ public class RedisUserStatusService implements UserStatusService {
 
   @Override
   public void setOffline(UUID userId) {
-    redisTemplate.delete(STATUS_KEY_PREFIX + userId);
+  redisTemplate.delete(STATUS_KEY_PREFIX + userId);
     eventPublisher.publishEvent(new UserStatusChangedEvent(userId, -1, true));
     log.debug("User {} manual logout/disconnect", userId);
   }
@@ -84,6 +87,34 @@ public class RedisUserStatusService implements UserStatusService {
     }, () -> {
       updateMask(userId, PresenceMask.createMask(UserStatus.ONLINE, false));
     });
+  }
+
+  @Override
+  public Map<UUID, Integer> getMasks(List<UUID> userIds) {
+    if (userIds == null || userIds.isEmpty()) return Map.of();
+
+    List<String> userKeys = userIds.stream().map(
+      userId -> STATUS_KEY_PREFIX + userId.toString()
+    ).toList();
+
+    List<String> rawValues = redisTemplate.opsForValue().multiGet(userKeys);
+
+    if (rawValues == null || rawValues.isEmpty()) {
+      Map<UUID, Integer> fallbackMap = new HashMap<>();
+      for (UUID id : userIds) {
+          fallbackMap.put(id, -1);
+      }
+      return fallbackMap;
+    }
+
+    Map<UUID, Integer> res = new HashMap<>();
+    for (int i = 0; i < userIds.size(); i++) {
+      String val = rawValues.get(i);
+      Integer mask = val != null ? Integer.parseInt(val) : -1;
+      res.put(userIds.get(i), mask);
+    }
+
+    return res;
   }
     
 }
