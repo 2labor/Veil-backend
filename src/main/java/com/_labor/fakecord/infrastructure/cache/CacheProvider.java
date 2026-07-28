@@ -1,6 +1,9 @@
 package com._labor.fakecord.infrastructure.cache;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -90,5 +93,48 @@ public class CacheProvider {
     long version = versionService.getVersion(basePrefix, userId);
     String versionKey = basePrefix + userId + ":v:" + version;
     return get(versionKey, ttl, clazz, dbFallback);
+  }
+
+  public <T> Map<String, T> getAll(List<String> keys, Class<T> clazz) {
+    if (keys == null || keys.isEmpty()) return Map.of();
+
+    Map<String, T> res = new HashMap<>();
+    List<String> missingL1 = new ArrayList<>();
+
+    for (String k : keys) {
+      Object local = localCache.getIfPresent(k);
+      if (local != null) {
+        res.put(k, clazz.cast(local));
+      } else {
+        missingL1.add(k);
+      }
+    }
+
+    if (missingL1.isEmpty()) return res;
+
+    List<Object> redisValues = redisTemplate.opsForValue().multiGet(missingL1);
+    for (int i = 0; i < missingL1.size(); i++) {
+      String key = missingL1.get(i);
+      Object redisValue = (i < redisValues.size()) ? redisValues.get(i) : null;
+      if (redisValue != null) {
+        T casted = clazz.cast(redisValue);
+        res.put(key, casted);
+
+        localCache.put(key, casted);
+      }
+    }
+
+    return res;
+  }
+
+  public <T> void set(String key, T value, Duration ttl) {
+    if (value == null) return;
+
+    localCache.put(key, value);
+    if (ttl != null) {
+      redisTemplate.opsForValue().set(key, value, ttl);
+    } else {
+      redisTemplate.opsForValue().set(key, value);
+    }
   }
 }

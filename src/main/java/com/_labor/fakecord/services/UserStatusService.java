@@ -1,5 +1,7 @@
 package com._labor.fakecord.services;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public interface UserStatusService {
@@ -10,4 +12,5 @@ public interface UserStatusService {
   boolean isOnline(UUID userId);
   int getMask(UUID userId);
   void touch(UUID userId);
+  Map<UUID, Integer> getMasks(List<UUID> userIds);
 }
