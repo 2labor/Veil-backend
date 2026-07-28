@@ -30,13 +30,16 @@ public class ServerRole {
   private String name;
 
   @Column(name = "is_displayable", nullable = false)
-  private boolean isDisplayable;
+  private boolean hoist;
 
   @Column(name = "color_hex", length = 7, nullable = false)
   private String colorHex;
 
   @Column(name = "permissions", nullable = false)
   private Long permissions;
+
+  @Column(name = "position", nullable = false)
+  private Integer position;
 
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
@@ -49,16 +52,19 @@ public class ServerRole {
     Long id, 
     Long serverId, 
     String name, 
-    boolean isDisplayable, 
+    boolean hoist, 
     String colorHex, 
-    Long permissions) 
+    Long permissions,
+    Integer position
+  ) 
   {
     this.id = id;
     this.serverId = serverId;
     this.name = name;
-    this.isDisplayable = isDisplayable;
+    this.hoist = hoist;
     this.colorHex = colorHex;
     this.permissions = permissions;    
+    this.position = position;
   }
 
   @PrePersist
