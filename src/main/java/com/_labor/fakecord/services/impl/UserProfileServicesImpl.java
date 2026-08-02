@@ -9,6 +9,7 @@ import com._labor.fakecord.domain.dto.UserProfileFullDto;
 import com._labor.fakecord.domain.dto.UserProfileUpdateDto;
 import com._labor.fakecord.domain.entity.User;
 import com._labor.fakecord.domain.entity.UserProfile;
+import com._labor.fakecord.domain.enums.UserStatus;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;
 import com._labor.fakecord.exception.ProfileNotFoundException;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
@@ -17,6 +18,7 @@ import com._labor.fakecord.repository.UserProfileRepository;
 import com._labor.fakecord.services.HandleGeneratorService;
 import com._labor.fakecord.services.UserProfileCache;
 import com._labor.fakecord.services.UserProfileServices;
+import com._labor.fakecord.services.UserStatusService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -29,13 +31,15 @@ public class UserProfileServicesImpl implements UserProfileServices{
   private final UserProfileCache cache;
   private final OutboxService outboxService;
   private final HandleGeneratorService generation;
+  private final UserStatusService statusService;
 
-  public UserProfileServicesImpl(UserProfileMapper mapper, UserProfileRepository repository, UserProfileCache cache, OutboxService outboxService, HandleGeneratorService generation) {
+  public UserProfileServicesImpl(UserProfileMapper mapper, UserProfileRepository repository, UserProfileCache cache, OutboxService outboxService, HandleGeneratorService generation, UserStatusService statusService) {
     this.mapper = mapper;
     this.repository = repository;
     this.cache = cache;
     this.outboxService = outboxService;
     this.generation = generation;
+    this.statusService = statusService;
   }
   
   @Override
@@ -67,6 +71,7 @@ public class UserProfileServicesImpl implements UserProfileServices{
     }
 
     mapper.toUpdateDto(updateDto, profile);
+    statusService.updateMask(userId, updateDto.statusPreference().getCode());
     repository.save(profile);
 
     cache.evict(userId);

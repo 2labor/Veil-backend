@@ -14,5 +14,5 @@ public record UserProfileShort(
   String discriminator,
   Long globalId,
   String avatarUrl,
-  UserStatus status
+  UserStatus statusPreference
 ) {}

@@ -47,11 +47,12 @@ public class ServerMemberMapperImpl implements ServerMemberMapper {
     
     ServerRole topRole = entity.getTopRole();
     TopRoleDto topRoleDto = topRole == null ? null : roleMapper.toDto(topRole);
+    String displayName = entity.getUserLocalName() != null ? entity.getUserLocalName() : userProfile.displayName();
     return ServerMemberSidebarResponseDto.builder()
       .userId(entity.getId().getUserId())
-      .displayName(entity.getUserLocalName())
+      .displayName(displayName)
       .avatarUrl(userProfile.avatarUrl())
-      .status(userProfile.status() != null ? userProfile.status() : UserStatus.OFFLINE)
+      .status(userProfile.statusPreference() != null ? userProfile.statusPreference() : UserStatus.OFFLINE)
       .topRole(topRoleDto)
     .build();
   }
