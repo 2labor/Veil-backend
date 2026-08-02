@@ -52,7 +52,7 @@ public class ServerMemberMapperImpl implements ServerMemberMapper {
       .userId(entity.getId().getUserId())
       .displayName(displayName)
       .avatarUrl(userProfile.avatarUrl())
-      .status(userProfile.status() != null ? userProfile.status() : UserStatus.OFFLINE)
+      .status(userProfile.statusPreference() != null ? userProfile.statusPreference() : UserStatus.OFFLINE)
       .topRole(topRoleDto)
     .build();
   }

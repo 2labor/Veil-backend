@@ -63,7 +63,7 @@ public class UserProfileMapperImpl implements UserProfileMapper {
       .discriminator(profile.getDiscriminator())
       .globalId(profile.getGlobalId())
       .avatarUrl(profile.getAvatarUrl())
-      .status(status != null ? status : UserStatus.OFFLINE)
+      .statusPreference((status == UserStatus.INVISIBLE || status == null) ? UserStatus.OFFLINE : status)
       .build();
   }
 
@@ -92,7 +92,7 @@ public class UserProfileMapperImpl implements UserProfileMapper {
       .discriminator(full.discriminator()) 
       .globalId(full.globalId())
       .avatarUrl(full.avatarUrl())
-      .status(status != null ? status : full.status())
+      .statusPreference(status != null ? status : full.status())
       .build();
   }
 }
