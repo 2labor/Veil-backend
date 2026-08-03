@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Set;
 
+import com._labor.fakecord.domain.entity.ServerRole;
+
 import lombok.Getter;
 
 @Getter
@@ -26,6 +28,12 @@ public enum ServerRolePermissions {
   }
 
   public static boolean isGranted(Long rawMask, ServerRolePermissions permission) {
+    if (rawMask == null || permission == null) return false;
+    
+    if ((rawMask & ADMIN_ACCESS.getMask()) == ADMIN_ACCESS.mask) {
+      return true;
+    } 
+    
     return (rawMask & permission.mask) == permission.mask;
   } 
 
@@ -42,10 +50,25 @@ public enum ServerRolePermissions {
   public static Set<ServerRolePermissions> unpack(Long rawMask) {
     Set<ServerRolePermissions> permissions = EnumSet.noneOf(ServerRolePermissions.class);
     for (ServerRolePermissions p : ServerRolePermissions.values()) {
-      if (isGranted(rawMask, p)) {
+      if ((rawMask & p.getMask()) == p.getMask()) {
         permissions.add(p);
       }
     }
     return permissions;
+  }
+
+  public static long calculateOverAllPermission(Collection<ServerRole> roles) {
+    if (roles == null || roles.isEmpty()) return 0L;
+
+    long accessPermission = 0L;
+    for (ServerRole role : roles) {
+      accessPermission |= role.getPermissions();
+    }
+
+    if (isGranted(accessPermission, ADMIN_ACCESS)) {
+      return ~0L;
+    }
+
+    return accessPermission;
   }
 }
