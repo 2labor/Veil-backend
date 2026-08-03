@@ -1,5 +1,6 @@
 package com._labor.fakecord.repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,11 @@ public interface ServerMemberRepository extends JpaRepository<ServerMember, Serv
     "WHERE sm.id.serverId = :serverId " +
     "ORDER BY sm.userLocalName ASC")
   Slice<ServerMember> findAllByServerIdWithRoles(@Param("serverId") Long serverId, Pageable pageable);
+
+  @Query("SELECT sm FROM ServerMember sm " +
+    "LEFT JOIN FETCH sm.roles " +
+    "WHERE sm.id = :id")
+  Optional<ServerMember> findByIdWithRoles(@Param("id") ServerMemberId id);
   // ServerMember findByUserId(UUID userId);
   // ServerMember findByServerId(Long serverId);
 }
