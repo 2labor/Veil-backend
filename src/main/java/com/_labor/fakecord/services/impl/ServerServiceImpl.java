@@ -11,7 +11,7 @@ import com._labor.fakecord.domain.entity.Server;
 import com._labor.fakecord.domain.entity.ServerMember;
 import com._labor.fakecord.domain.entity.ServerMemberId;
 import com._labor.fakecord.domain.enums.ChannelType;
-import com._labor.fakecord.infrastructure.id.IdGenerator;
+import com._labor.fakecord.infrastructure.id.IdGenerator; 
 import com._labor.fakecord.repository.ServerMemberRepository;
 import com._labor.fakecord.repository.ServerRepository;
 import com._labor.fakecord.services.ChannelService;
@@ -62,5 +62,13 @@ public class ServerServiceImpl implements ServerService {
   @Override
   public List<Server> getUserServers(UUID userId) {
     return repo.findByUserId(userId);
+  }
+
+  @Override
+  public boolean isUserOwner(UUID userId, Long serverId) {
+    Server server = repo.findById(serverId)
+      .orElseThrow(() -> new IllegalArgumentException("No server with such id: " + serverId));
+
+    return server.getOwnerId().equals(userId);
   }
 }
