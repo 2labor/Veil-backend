@@ -9,10 +9,13 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com._labor.fakecord.domain.dto.ServerMemberSidebarResponseDto;
 import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.domain.entity.ServerMember;
+import com._labor.fakecord.domain.entity.ServerMemberId;
+import com._labor.fakecord.domain.entity.ServerRole;
 import com._labor.fakecord.domain.mappper.ServerMemberMapper;
 import com._labor.fakecord.repository.ServerMemberRepository;
 import com._labor.fakecord.services.ServerMemberService;
@@ -51,6 +54,37 @@ public class ServerMemberServiceImpl implements ServerMemberService {
     );
 
     return new SliceImpl<ServerMemberSidebarResponseDto>(dtos, pageable, members.hasNext());
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public ServerMember getMemberWithRoles(UUID userId, Long serverId) {
+    ServerMemberId id = new ServerMemberId(userId, serverId);
+    return repository.findByIdWithRoles(id)
+      .orElseThrow(() -> new AccessDeniedException("User is not a member of this server"));
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public ServerMember getServerMember(UUID userId, Long serverId) {
+    ServerMemberId memberId = new ServerMemberId(userId, serverId);
+
+    return repository.findById(memberId)
+      .orElseThrow(() -> new IllegalArgumentException("User is not a member of this server"));
+  }
+
+  @Override
+  public int getMemberMaxRolePosition(UUID userId, Long serverId) {
+    ServerMember member = getMemberWithRoles(userId, serverId);
+
+    if (member.getRoles() == null || member.getRoles().isEmpty()) {
+      return 0;
+    }
+
+    return member.getRoles().stream()
+      .mapToInt(ServerRole::getPosition)
+      .max()
+      .orElse(0);
   }
   
 }

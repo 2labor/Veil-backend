@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Set;
 
+import com._labor.fakecord.domain.entity.ServerRole;
+
 import lombok.Getter;
 
 @Getter
@@ -15,8 +17,9 @@ public enum ServerRolePermissions {
   MANAGE_CHANNELS(1L << 4, "Menage server channels"),
   MANAGE_ROLES(1L << 5, "Menage server roles"),
   MANAGE_EMOJIS(1L << 6, "Menage server emojis"),
-  ADMIN_ACCESS(1L << 7, "Admin access on the server");
-
+  MANAGE_USERS(1L << 7, "Manage users on a server"),
+  ADMIN_ACCESS(1L << 8, "Admin access on the server");
+  
   private final Long mask;
   private final String title;
 
@@ -26,6 +29,12 @@ public enum ServerRolePermissions {
   }
 
   public static boolean isGranted(Long rawMask, ServerRolePermissions permission) {
+    if (rawMask == null || permission == null) return false;
+    
+    if ((rawMask & ADMIN_ACCESS.getMask()) == ADMIN_ACCESS.mask) {
+      return true;
+    } 
+    
     return (rawMask & permission.mask) == permission.mask;
   } 
 
@@ -42,10 +51,25 @@ public enum ServerRolePermissions {
   public static Set<ServerRolePermissions> unpack(Long rawMask) {
     Set<ServerRolePermissions> permissions = EnumSet.noneOf(ServerRolePermissions.class);
     for (ServerRolePermissions p : ServerRolePermissions.values()) {
-      if (isGranted(rawMask, p)) {
+      if ((rawMask & p.getMask()) == p.getMask()) {
         permissions.add(p);
       }
     }
     return permissions;
+  }
+
+  public static long calculateOverAllPermission(Collection<ServerRole> roles) {
+    if (roles == null || roles.isEmpty()) return 0L;
+
+    long accessPermission = 0L;
+    for (ServerRole role : roles) {
+      accessPermission |= role.getPermissions();
+    }
+
+    if (isGranted(accessPermission, ADMIN_ACCESS)) {
+      return ~0L;
+    }
+
+    return accessPermission;
   }
 }
