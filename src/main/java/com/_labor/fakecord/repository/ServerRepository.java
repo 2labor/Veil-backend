@@ -15,4 +15,5 @@ public interface ServerRepository extends JpaRepository<Server, Long>{
     "JOIN ServerMember sm ON s.id = sm.id.serverId " +
     "WHERE sm.id.userId = :userId")
     List<Server> findByUserId(@Param("userId") UUID userId);
+    boolean existsByIdAndOwnerId(Long id, UUID ownerId);
 }

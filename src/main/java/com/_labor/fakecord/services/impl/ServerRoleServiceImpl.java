@@ -15,7 +15,7 @@ import com._labor.fakecord.repository.ServerRolesRepository;
 import com._labor.fakecord.services.PermissionService;
 import com._labor.fakecord.services.ServerMemberService;
 import com._labor.fakecord.services.ServerRoleService;
-import com._labor.fakecord.services.ServerService;
+import com._labor.fakecord.services.ServerSecurityService;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +35,7 @@ public class ServerRoleServiceImpl implements ServerRoleService {
   private final ServerRolesRepository repository;
   private final IdGenerator idGenerator;
   private final PermissionService permissionService;
-  private final ServerService serverService;
+  private final ServerSecurityService serverSecurityService;
   private final ServerMemberService serverMemberService;
 
   @Transactional
@@ -157,7 +157,7 @@ public class ServerRoleServiceImpl implements ServerRoleService {
   }
 
   private void checkRoleHierarchy(UUID userId, Long serverId, Integer targetRolePosition) {
-    if (serverService.isUserOwner(userId, serverId)) return;
+    if (serverSecurityService.isUserOwner(userId, serverId)) return; // cycle 3
 
     Integer userRolePosition = serverMemberService.getMemberMaxRolePosition(userId, serverId);
     if (userRolePosition <= targetRolePosition) {

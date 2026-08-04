@@ -15,8 +15,8 @@ import com._labor.fakecord.infrastructure.id.IdGenerator;
 import com._labor.fakecord.repository.ServerMemberRepository;
 import com._labor.fakecord.repository.ServerRepository;
 import com._labor.fakecord.services.ChannelService;
+import com._labor.fakecord.services.ServerDomainService;
 import com._labor.fakecord.services.ServerRoleService;
-import com._labor.fakecord.services.ServerService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,12 +24,12 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ServerServiceImpl implements ServerService {
+public class ServerDomainServiceImpl implements ServerDomainService {
   private final ServerRepository repo;
   private final ServerMemberRepository memberRepository;
   private final IdGenerator idGenerator;
   private final ChannelService channelService;
-  private final ServerRoleService rolesService;
+  private final ServerRoleService rolesService; // cycle 2
 
   @Override
   @Transactional
@@ -44,7 +44,7 @@ public class ServerServiceImpl implements ServerService {
       .build();
     Server savedServer = repo.save(server);
     
-    rolesService.createDefaultRole(server.getId());
+    rolesService.createDefaultRole(server.getId()); // cycle 2
 
     ServerMemberId memberId = new ServerMemberId(operatorId, savedServer.getId());
     ServerMember member = ServerMember.builder()
@@ -62,13 +62,5 @@ public class ServerServiceImpl implements ServerService {
   @Override
   public List<Server> getUserServers(UUID userId) {
     return repo.findByUserId(userId);
-  }
-
-  @Override
-  public boolean isUserOwner(UUID userId, Long serverId) {
-    Server server = repo.findById(serverId)
-      .orElseThrow(() -> new IllegalArgumentException("No server with such id: " + serverId));
-
-    return server.getOwnerId().equals(userId);
   }
 }

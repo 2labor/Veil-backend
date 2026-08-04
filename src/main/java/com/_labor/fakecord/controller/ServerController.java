@@ -7,7 +7,7 @@ import com._labor.fakecord.domain.dto.ServerSidebarResponseDto;
 import com._labor.fakecord.domain.entity.Server;
 import com._labor.fakecord.domain.mappper.ServerMapper;
 import com._labor.fakecord.domain.request.CreateServerRequest;
-import com._labor.fakecord.services.ServerService;
+import com._labor.fakecord.services.ServerDomainService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/servers")
 public class ServerController {
-  private final ServerService service;
+  private final ServerDomainService service;
   private final ServerMapper mapper;
 
   @PostMapping
