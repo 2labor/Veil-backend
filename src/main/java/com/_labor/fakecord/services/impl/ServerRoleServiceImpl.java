@@ -156,6 +156,15 @@ public class ServerRoleServiceImpl implements ServerRoleService {
     member.removeRole(roleToRemove);
   }
 
+  @Override
+  public List<ServerRole> getAllServerRoles(UUID operatorId, Long serverId) {
+    if (!serverMemberService.checkIsUserMember(serverId, operatorId)) throw new AccessDeniedException("You are not a member of this server");
+
+    permissionService.requirePermission(operatorId, serverId, ServerRolePermissions.MANAGE_ROLES);
+    
+    return repository.findByServerIdOrderByPositionDesc(serverId);
+  }
+
   private void checkRoleHierarchy(UUID userId, Long serverId, Integer targetRolePosition) {
     if (serverSecurityService.isUserOwner(userId, serverId)) return; // cycle 3
 

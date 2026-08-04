@@ -11,4 +11,5 @@ public interface ServerRolesRepository extends JpaRepository<ServerRole, Long> {
   List<ServerRole> findByServerId(Long serverId);
   @Query("SELECT COALESCE(MAX(r.position), 0) FROM ServerRole r WHERE r.serverId = :serverId")
   Integer findMaxPositionByServerId(Long serverId);
+  List<ServerRole> findByServerIdOrderByPositionDesc(Long serverId);
 }

@@ -1,12 +1,12 @@
 package com._labor.fakecord.domain.mappper.Impl;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
 import com._labor.fakecord.domain.dto.ServerRoleCreateDto;
 import com._labor.fakecord.domain.dto.ServerRoleResponseDto;
+import com._labor.fakecord.domain.dto.ServerRoleShortDto;
 import com._labor.fakecord.domain.dto.ServerRoleUpdateDto;
 import com._labor.fakecord.domain.entity.ServerRole;
 import com._labor.fakecord.domain.mappper.ServerRoleMapper;
@@ -53,10 +53,29 @@ public class ServerRoleMapperImpl implements ServerRoleMapper {
   }
 
   @Override
+  public ServerRoleShortDto toShortDto(ServerRole entity) {
+    if (entity == null) return null;
+
+    return ServerRoleShortDto.builder()
+      .id(entity.getId())
+      .name(entity.getName())
+      .colorHex(entity.getColorHex())
+      .position(entity.getPosition())
+      .build();
+  }
+
+  @Override
   public List<ServerRoleResponseDto> toDtoList(List<ServerRole> entities) {
     if (entities == null || entities.isEmpty()) return List.of();
 
-    return entities.stream().map(this::toDto).collect(Collectors.toList());
+    return entities.stream().map(this::toDto).toList();
+  }
+
+  @Override
+  public List<ServerRoleShortDto> toShortDtoList(List<ServerRole> entities) {
+    if (entities == null || entities.isEmpty()) return List.of();
+
+    return entities.stream().map(this::toShortDto).toList();
   }
   
 }

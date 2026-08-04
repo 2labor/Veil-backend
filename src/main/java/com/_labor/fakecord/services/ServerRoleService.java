@@ -1,5 +1,6 @@
 package com._labor.fakecord.services;
 
+import java.util.List;
 import java.util.UUID;
 
 import com._labor.fakecord.domain.entity.ServerRole;
@@ -11,4 +12,5 @@ public interface ServerRoleService {
   void deleteRole(UUID operatorId, Long serverId, Long targetRoleId);
   void addRolesToMember(UUID operatorId, Long serverId, UUID targetUserId, Long targetRoleId);
   void removeRoleFromMember(UUID operantId, Long serverId, UUID targetUserId, Long targetRoleId);
+  List<ServerRole> getAllServerRoles(UUID operatorId, Long serverId);
 }
