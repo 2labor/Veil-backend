@@ -180,7 +180,7 @@ public class ServerRoleServiceImpl implements ServerRoleService {
   }
 
   private void checkRoleHierarchy(UUID userId, Long serverId, Integer targetRolePosition) {
-    // if (serverSecurityService.isUserOwner(userId, serverId)) return;
+    if (serverSecurityService.isUserOwner(userId, serverId)) return;
 
     Integer userRolePosition = serverMemberService.getMemberMaxRolePosition(userId, serverId);
     if (userRolePosition <= targetRolePosition) {
