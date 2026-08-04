@@ -15,7 +15,7 @@ import com._labor.fakecord.repository.ServerRolesRepository;
 import com._labor.fakecord.services.PermissionService;
 import com._labor.fakecord.services.ServerMemberService;
 import com._labor.fakecord.services.ServerRoleService;
-import com._labor.fakecord.services.ServerService;
+import com._labor.fakecord.services.ServerSecurityService;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +35,7 @@ public class ServerRoleServiceImpl implements ServerRoleService {
   private final ServerRolesRepository repository;
   private final IdGenerator idGenerator;
   private final PermissionService permissionService;
-  private final ServerService serverService;
+  private final ServerSecurityService serverSecurityService;
   private final ServerMemberService serverMemberService;
 
   @Transactional
@@ -156,8 +156,31 @@ public class ServerRoleServiceImpl implements ServerRoleService {
     member.removeRole(roleToRemove);
   }
 
+  @Override
+  public List<ServerRole> getAllServerRoles(UUID operatorId, Long serverId) {
+    if (!serverMemberService.checkIsUserMember(serverId, operatorId)) throw new AccessDeniedException("You are not a member of this server");
+
+    permissionService.requirePermission(operatorId, serverId, ServerRolePermissions.MANAGE_ROLES);
+    
+    return repository.findByServerIdOrderByPositionDesc(serverId);
+  }
+
+  @Override
+  public ServerRole getRoleById(UUID operatorId, Long serverId, Long roleId) {
+    if(!serverMemberService.checkIsUserMember(serverId, operatorId)) throw new AccessDeniedException("You are not a member of this server");
+
+    permissionService.requirePermission(operatorId, serverId, ServerRolePermissions.MANAGE_ROLES);
+
+    ServerRole role = repository.findById(roleId)
+      .orElseThrow(() -> new IllegalArgumentException("No role with such id: " + roleId));
+
+    if (!role.getServerId().equals(serverId)) throw new AccessDeniedException("Role with id " + role.getId() + " does not belong to server " + serverId);
+
+    return role;
+  }
+
   private void checkRoleHierarchy(UUID userId, Long serverId, Integer targetRolePosition) {
-    if (serverService.isUserOwner(userId, serverId)) return;
+    if (serverSecurityService.isUserOwner(userId, serverId)) return;
 
     Integer userRolePosition = serverMemberService.getMemberMaxRolePosition(userId, serverId);
     if (userRolePosition <= targetRolePosition) {

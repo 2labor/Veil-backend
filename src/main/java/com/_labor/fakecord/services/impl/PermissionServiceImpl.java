@@ -12,7 +12,7 @@ import com._labor.fakecord.domain.entity.ServerMemberId;
 import com._labor.fakecord.domain.enums.ServerRolePermissions;
 import com._labor.fakecord.repository.ServerMemberRepository;
 import com._labor.fakecord.services.PermissionService;
-import com._labor.fakecord.services.ServerService;
+import com._labor.fakecord.services.ServerSecurityService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,12 +21,12 @@ import lombok.RequiredArgsConstructor;
 public class PermissionServiceImpl implements PermissionService {
   
   private final ServerMemberRepository repository;
-  private final ServerService serverService;
+  private final ServerSecurityService serverSecurityService;
 
   @Transactional(readOnly = true)
   @Override
   public long getEffectivePermissions(UUID userId, Long serverId) {
-    if (serverService.isUserOwner(userId, serverId)) {
+    if (serverSecurityService.isUserOwner(userId, serverId)) { 
       return ~0L;
     }
 

@@ -5,8 +5,7 @@ import java.util.UUID;
 
 import com._labor.fakecord.domain.entity.Server;
 
-public interface ServerService {
+public interface ServerDomainService {
   Server createServer(UUID operatorId, String serverName, String iconUrl);
   List<Server> getUserServers(UUID userId);
-  boolean isUserOwner(UUID userId, Long serverId);
 }
