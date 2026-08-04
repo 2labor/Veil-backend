@@ -29,7 +29,7 @@ public class ServerDomainServiceImpl implements ServerDomainService {
   private final ServerMemberRepository memberRepository;
   private final IdGenerator idGenerator;
   private final ChannelService channelService;
-  private final ServerRoleService rolesService; // cycle 2
+  private final ServerRoleService rolesService;
 
   @Override
   @Transactional
@@ -44,7 +44,7 @@ public class ServerDomainServiceImpl implements ServerDomainService {
       .build();
     Server savedServer = repo.save(server);
     
-    rolesService.createDefaultRole(server.getId()); // cycle 2
+    rolesService.createDefaultRole(server.getId());
 
     ServerMemberId memberId = new ServerMemberId(operatorId, savedServer.getId());
     ServerMember member = ServerMember.builder()

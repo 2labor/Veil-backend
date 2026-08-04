@@ -26,7 +26,7 @@ public class PermissionServiceImpl implements PermissionService {
   @Transactional(readOnly = true)
   @Override
   public long getEffectivePermissions(UUID userId, Long serverId) {
-    if (serverSecurityService.isUserOwner(userId, serverId)) { // cycle 1
+    if (serverSecurityService.isUserOwner(userId, serverId)) { 
       return ~0L;
     }
 
