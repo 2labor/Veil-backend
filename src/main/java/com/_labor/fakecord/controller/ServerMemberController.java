@@ -3,7 +3,9 @@ package com._labor.fakecord.controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com._labor.fakecord.domain.dto.ServerMemberResponseDto;
 import com._labor.fakecord.domain.dto.ServerMemberSidebarResponseDto;
+import com._labor.fakecord.services.ServerMemberFacade;
 import com._labor.fakecord.services.ServerMemberService;
 
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 @RequiredArgsConstructor
 public class ServerMemberController {
   private final ServerMemberService service;
+  private final ServerMemberFacade facadeService;
 
   @GetMapping("/sidebar")
   public ResponseEntity<Slice<ServerMemberSidebarResponseDto>> getSideBarUsers(
@@ -43,6 +46,17 @@ public class ServerMemberController {
     Slice<ServerMemberSidebarResponseDto> sidebarSlice = service.getServerMembers(serverId, userId, pageable);
 
     return ResponseEntity.ok(sidebarSlice);
+  }
+
+  @GetMapping("/{targetMemberId}")
+  public ResponseEntity<ServerMemberResponseDto> getMemberProfile(
+    Principal principal,
+    @PathVariable Long serverId,
+    @PathVariable UUID targetMemberId
+  ) {
+    UUID userId = getUserId(principal);
+    ServerMemberResponseDto dto = facadeService.getMemberProfile(userId, targetMemberId, serverId);
+    return ResponseEntity.ok(dto);
   }
 
   private UUID getUserId(Principal principal) {
