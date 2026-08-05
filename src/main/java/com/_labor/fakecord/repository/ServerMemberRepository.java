@@ -16,7 +16,6 @@ import io.lettuce.core.dynamic.annotation.Param;
 
 @Repository
 public interface ServerMemberRepository extends JpaRepository<ServerMember, ServerMemberId> {
-  boolean existsById_ServerIdAndId_UserId(Long serverId, UUID userId);
   @Query("SELECT DISTINCT sm FROM ServerMember sm " +
     "LEFT JOIN FETCH sm.roles r " +
     "WHERE sm.id.serverId = :serverId " +
@@ -27,6 +26,7 @@ public interface ServerMemberRepository extends JpaRepository<ServerMember, Serv
     "LEFT JOIN FETCH sm.roles " +
     "WHERE sm.id = :id")
   Optional<ServerMember> findByIdWithRoles(@Param("id") ServerMemberId id);
+  boolean existsByIdServerIdAndIdUserId(Long serverId, UUID userId);
   // ServerMember findByUserId(UUID userId);
   // ServerMember findByServerId(Long serverId);
 }
