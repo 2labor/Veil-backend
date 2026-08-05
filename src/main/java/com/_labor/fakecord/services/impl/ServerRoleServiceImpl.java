@@ -134,7 +134,7 @@ public class ServerRoleServiceImpl implements ServerRoleService {
     checkRoleHierarchy(operatorId, serverId, roleToAdd.getPosition());
     
     permissionService.requireCanGrantPermissions(operatorId, serverId, roleToAdd.getPermissions());
-    ServerMember member = serverMemberService.getMemberWithRoles(targetUserId, serverId);
+    ServerMember member = serverMemberService.getMemberWithRoles(operatorId, targetUserId, serverId);
     member.addRole(roleToAdd);
   }
 
@@ -148,11 +148,11 @@ public class ServerRoleServiceImpl implements ServerRoleService {
 
     if (!roleToRemove.getServerId().equals(serverId)) {
         throw new AccessDeniedException("Role with id " + roleToRemove.getId() + " does not belong to server " + serverId);
-    }    
+    }
 
     checkRoleHierarchy(operantId, serverId, roleToRemove.getPosition());
 
-    ServerMember member = serverMemberService.getMemberWithRoles(targetUserId, serverId);
+    ServerMember member = serverMemberService.getMemberWithRoles(operantId, targetUserId, serverId);
     member.removeRole(roleToRemove);
   }
 
@@ -182,7 +182,7 @@ public class ServerRoleServiceImpl implements ServerRoleService {
   private void checkRoleHierarchy(UUID userId, Long serverId, Integer targetRolePosition) {
     if (serverSecurityService.isUserOwner(userId, serverId)) return;
 
-    Integer userRolePosition = serverMemberService.getMemberMaxRolePosition(userId, serverId);
+    Integer userRolePosition = serverMemberService.getMemberMaxRolePosition(userId, userId, serverId);
     if (userRolePosition <= targetRolePosition) {
       throw new AccessDeniedException("You cannot manage a role that is higher or equal to your highest role in hierarchy");
     }

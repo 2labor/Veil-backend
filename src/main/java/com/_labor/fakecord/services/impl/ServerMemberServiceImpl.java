@@ -33,7 +33,7 @@ public class ServerMemberServiceImpl implements ServerMemberService {
 
   @Override
   public boolean checkIsUserMember(Long serverId, UUID userId) {
-    return repository.existsById_ServerIdAndId_UserId(serverId, userId);
+    return repository.existsByIdServerIdAndIdUserId(serverId, userId);
   }
 
   @Override
@@ -58,7 +58,9 @@ public class ServerMemberServiceImpl implements ServerMemberService {
 
   @Override
   @Transactional(readOnly = true)
-  public ServerMember getMemberWithRoles(UUID userId, Long serverId) {
+  public ServerMember getMemberWithRoles(UUID operatorId, UUID userId, Long serverId) {
+    if (!checkIsUserMember(serverId, operatorId)) throw new AccessDeniedException("You have to be member of server for using this functionality!");
+
     ServerMemberId id = new ServerMemberId(userId, serverId);
     return repository.findByIdWithRoles(id)
       .orElseThrow(() -> new AccessDeniedException("User is not a member of this server"));
@@ -74,8 +76,8 @@ public class ServerMemberServiceImpl implements ServerMemberService {
   }
 
   @Override
-  public int getMemberMaxRolePosition(UUID userId, Long serverId) {
-    ServerMember member = getMemberWithRoles(userId, serverId);
+  public int getMemberMaxRolePosition(UUID operatorId, UUID userId, Long serverId) {
+    ServerMember member = getMemberWithRoles(operatorId, userId, serverId);
 
     if (member.getRoles() == null || member.getRoles().isEmpty()) {
       return 0;
