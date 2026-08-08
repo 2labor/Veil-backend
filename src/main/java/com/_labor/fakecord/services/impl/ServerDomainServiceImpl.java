@@ -10,6 +10,7 @@ import com._labor.fakecord.domain.entity.Channel;
 import com._labor.fakecord.domain.entity.Server;
 import com._labor.fakecord.domain.entity.ServerMember;
 import com._labor.fakecord.domain.entity.ServerMemberId;
+import com._labor.fakecord.domain.entity.ServerRole;
 import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.infrastructure.id.IdGenerator; 
 import com._labor.fakecord.repository.ServerMemberRepository;
@@ -44,13 +45,14 @@ public class ServerDomainServiceImpl implements ServerDomainService {
       .build();
     Server savedServer = repo.save(server);
     
-    rolesService.createDefaultRole(server.getId());
+    ServerRole defaultRole = rolesService.createDefaultRole(server.getId());
 
     ServerMemberId memberId = new ServerMemberId(operatorId, savedServer.getId());
-    ServerMember member = ServerMember.builder()
+    ServerMember owner = ServerMember.builder()
       .id(memberId)
       .build();
-    memberRepository.save(member);
+    owner.addRole(defaultRole);
+    memberRepository.save(owner);
 
     Channel parentCategory = channelService.createChannel(savedServer.getId(), operatorId, "general-category", ChannelType.GUILD_CATEGORY, null);
 

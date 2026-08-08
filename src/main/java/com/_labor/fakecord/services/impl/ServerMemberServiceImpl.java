@@ -1,5 +1,6 @@
 package com._labor.fakecord.services.impl;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -18,16 +19,20 @@ import com._labor.fakecord.domain.entity.ServerMemberId;
 import com._labor.fakecord.domain.entity.ServerRole;
 import com._labor.fakecord.domain.mappper.ServerMemberMapper;
 import com._labor.fakecord.repository.ServerMemberRepository;
+import com._labor.fakecord.repository.ServerRolesRepository;
 import com._labor.fakecord.services.ServerMemberService;
 import com._labor.fakecord.services.UserProfileCache;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ServerMemberServiceImpl implements ServerMemberService {
 
   private final ServerMemberRepository repository;
+  private final ServerRolesRepository roleRepository;
   private final ServerMemberMapper mapper;
   private final UserProfileCache userProfileService;
 
@@ -87,6 +92,25 @@ public class ServerMemberServiceImpl implements ServerMemberService {
       .mapToInt(ServerRole::getPosition)
       .max()
       .orElse(0);
+  }
+
+  @Override
+  public ServerMember addMemberToServer(UUID userId, Long serverId) {
+    ServerMemberId memberId = new ServerMemberId(userId, serverId);
+
+    return repository.findById(memberId).orElseGet(() -> {
+      log.info("Adding user {} to server {}", userId, serverId);
+      
+      ServerRole defaultRole = roleRepository.findByServerIdAndPosition(serverId, 0)
+        .orElseThrow(() -> new IllegalArgumentException("No default role on a server!"));
+      
+      ServerMember newMember = ServerMember.builder()
+        .id(memberId)
+        .build();
+      newMember.addRole(defaultRole);
+
+      return repository.save(newMember);
+    });
   }
   
 }
