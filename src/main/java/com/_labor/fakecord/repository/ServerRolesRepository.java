@@ -1,6 +1,7 @@
 package com._labor.fakecord.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,4 +13,5 @@ public interface ServerRolesRepository extends JpaRepository<ServerRole, Long> {
   @Query("SELECT COALESCE(MAX(r.position), 0) FROM ServerRole r WHERE r.serverId = :serverId")
   Integer findMaxPositionByServerId(Long serverId);
   List<ServerRole> findByServerIdOrderByPositionDesc(Long serverId);
+  Optional<ServerRole> findByServerIdAndPosition(Long serverId, Integer position);
 }
