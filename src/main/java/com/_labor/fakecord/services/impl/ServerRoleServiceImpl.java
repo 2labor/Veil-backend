@@ -178,7 +178,7 @@ public class ServerRoleServiceImpl implements ServerRoleService {
 
     return role;
   }
-
+  
   private void checkRoleHierarchy(UUID userId, Long serverId, Integer targetRolePosition) {
     if (serverSecurityService.isUserOwner(userId, serverId)) return;
 

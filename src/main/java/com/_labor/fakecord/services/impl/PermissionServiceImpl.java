@@ -1,5 +1,7 @@
 package com._labor.fakecord.services.impl;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -7,6 +9,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com._labor.fakecord.domain.dto.PermissionMetadataDto;
+import com._labor.fakecord.domain.dto.UserServerPermissionsDto;
 import com._labor.fakecord.domain.entity.ServerMember;
 import com._labor.fakecord.domain.entity.ServerMemberId;
 import com._labor.fakecord.domain.enums.ServerRolePermissions;
@@ -69,4 +73,20 @@ public class PermissionServiceImpl implements PermissionService {
         throw new AccessDeniedException("You cannot grant permissions that you do not possess: " + missing);
       }
     }
+
+  @Override
+  public List<PermissionMetadataDto> getAllPermissionsMetadata() {
+    return Arrays.stream(ServerRolePermissions.values())
+      .map(PermissionMetadataDto::fromEnum)
+      .toList();
   }
+
+  @Override
+  public UserServerPermissionsDto getUserPermissionsOnServer(UUID userId, Long serverId) {
+    boolean isOwner = serverSecurityService.isUserOwner(userId, serverId);
+    long rawMask = getEffectivePermissions(userId, serverId);
+
+    return new UserServerPermissionsDto(serverId, rawMask, isOwner);
+  }
+
+}
