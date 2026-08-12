@@ -10,24 +10,31 @@ import lombok.Getter;
 
 @Getter
 public enum ServerRolePermissions {
-  READ_CHANNEL(1L << 0, "Read chat content"),
-  WRITE_TO_CHANNEL(1L << 1, "Write to channel"),
-  ADD_ATTACHMENTS(1L << 2, "Add attachments to the message"),
-  MANAGE_MESSAGES(1L << 3, "Menage users messages"),
-  MANAGE_CHANNELS(1L << 4, "Menage server channels"),
-  MANAGE_ROLES(1L << 5, "Menage server roles"),
-  MANAGE_EMOJIS(1L << 6, "Menage server emojis"),
-  MANAGE_USERS(1L << 7, "Manage users on a server"),
-  ADMIN_ACCESS(1L << 8, "Admin access on the server"),
-  CREATE_INSTANT_INVITE(1L << 9, "Create new invites to the server"),
-  MANAGE_INVITES(1L << 10, "Manage server invites");
+  CREATE_INSTANT_INVITE(1L << 0, "Create Instant Invite", "Allows creating invite codes for users to join this server", RolePermissionCategory.GENERAL),
+  MANAGE_INVITES(1L << 1, "Manage Invites", "Allows viewing and revoking active invite codes", RolePermissionCategory.GENERAL),
+  MANAGE_EMOJIS(1L << 2, "Manage Emojis", "Allows uploading, editing, and deleting custom server emojis", RolePermissionCategory.GENERAL),
+
+  MANAGE_USERS(1L << 3, "Manage Members", "Allows kicking, banning, and modifying server nicknames", RolePermissionCategory.MEMBERSHIP),
+  MANAGE_ROLES(1L << 4, "Manage Roles", "Allows creating, editing, and deleting roles below their highest role", RolePermissionCategory.MEMBERSHIP),
+
+  READ_CHANNEL(1L << 5, "View Channels", "Allows members to view channels and read message history", RolePermissionCategory.TEXT_CHANNEL),
+  WRITE_TO_CHANNEL(1L << 6, "Send Messages", "Allows members to post messages in text channels", RolePermissionCategory.TEXT_CHANNEL),
+  ADD_ATTACHMENTS(1L << 7, "Attach Files", "Allows uploading images, media, and files in chat", RolePermissionCategory.TEXT_CHANNEL),
+  MANAGE_MESSAGES(1L << 8, "Manage Messages", "Allows deleting or pinning messages sent by other members", RolePermissionCategory.TEXT_CHANNEL),
+  MANAGE_CHANNELS(1L << 9, "Manage Channels", "Allows creating, editing, or deleting text and voice channels", RolePermissionCategory.TEXT_CHANNEL),
+
+  ADMIN_ACCESS(1L << 10, "Administrator", "Grants full permissions and bypasses channel overrides. Dangerous permission!", RolePermissionCategory.ADMINISTRATION);
   
   private final Long mask;
   private final String title;
+  private final String descriptions;
+  private final RolePermissionCategory category;
 
-  ServerRolePermissions(Long mask, String title) {
+  ServerRolePermissions(Long mask, String title, String descriptions, RolePermissionCategory category) {
     this.mask = mask;
     this.title = title;
+    this.descriptions = descriptions;
+    this.category = category;
   }
 
   public static boolean isGranted(Long rawMask, ServerRolePermissions permission) {
