@@ -41,8 +41,7 @@ public class ServerRoleServiceImpl implements ServerRoleService {
   @Transactional
   @Override
   public ServerRole createDefaultRole(Long serverId) {
-    Long roleId = idGenerator.nextId();
-  
+
     Long rolePermissions = ServerRolePermissions.pack(List.of(
       ServerRolePermissions.READ_CHANNEL,
       ServerRolePermissions.WRITE_TO_CHANNEL,
@@ -50,7 +49,7 @@ public class ServerRoleServiceImpl implements ServerRoleService {
     ));
 
     ServerRole defaultRole = ServerRole.builder()
-      .id(roleId)
+      .id(serverId)
       .serverId(serverId)
       .name(name)
       .hoist(false)

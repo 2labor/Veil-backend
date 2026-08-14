@@ -16,4 +16,9 @@ public interface PermissionService {
   boolean hasPermission(UUID userId, Long serverId, ServerRolePermissions permission);
   boolean canGrantThePermissions(UUID userId, Long serverId, long targetPermissions);
   void requireCanGrantPermissions(UUID userId, Long serverId, long targetPermissions);
+
+  //channels
+  long getEffectiveChannelPermissions(UUID userId, Long serverId, Long channelId);
+  boolean hasChannelPermission(UUID userId, Long serverId, Long channelId, ServerRolePermissions rolePermission);
+  void requestChannelPermission(UUID userId, Long serverId, Long channelId, ServerRolePermissions rolePermission);
 }
