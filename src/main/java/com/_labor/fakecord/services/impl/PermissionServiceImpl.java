@@ -1,15 +1,23 @@
 package com._labor.fakecord.services.impl;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com._labor.fakecord.domain.dto.PermissionMetadataDto;
+import com._labor.fakecord.domain.dto.UserServerPermissionsDto;
+import com._labor.fakecord.domain.entity.ChannelPermissionOverride;
 import com._labor.fakecord.domain.entity.ServerMember;
 import com._labor.fakecord.domain.entity.ServerMemberId;
 import com._labor.fakecord.domain.enums.ServerRolePermissions;
+import com._labor.fakecord.domain.policy.ChannelPermissionCalculator;
+import com._labor.fakecord.repository.ChannelPermissionOverrideRepository;
 import com._labor.fakecord.repository.ServerMemberRepository;
 import com._labor.fakecord.services.PermissionService;
 import com._labor.fakecord.services.ServerSecurityService;
@@ -22,6 +30,8 @@ public class PermissionServiceImpl implements PermissionService {
   
   private final ServerMemberRepository repository;
   private final ServerSecurityService serverSecurityService;
+  private final ChannelPermissionOverrideRepository overrideRepository;
+  private final ChannelPermissionCalculator permissionCalculator;
 
   @Transactional(readOnly = true)
   @Override
@@ -69,4 +79,53 @@ public class PermissionServiceImpl implements PermissionService {
         throw new AccessDeniedException("You cannot grant permissions that you do not possess: " + missing);
       }
     }
+
+  @Override
+  public List<PermissionMetadataDto> getAllPermissionsMetadata() {
+    return Arrays.stream(ServerRolePermissions.values())
+      .map(PermissionMetadataDto::fromEnum)
+      .toList();
   }
+
+  @Override
+  public UserServerPermissionsDto getUserPermissionsOnServer(UUID userId, Long serverId) {
+    boolean isOwner = serverSecurityService.isUserOwner(userId, serverId);
+    long rawMask = getEffectivePermissions(userId, serverId);
+
+    return new UserServerPermissionsDto(serverId, rawMask, isOwner);
+  }
+
+  @Override
+  public long getEffectiveChannelPermissions(UUID userId, Long serverId, Long channelId) {
+    long basePermission = getEffectivePermissions(userId, serverId);
+
+    if (ServerRolePermissions.isGranted(basePermission, ServerRolePermissions.ADMIN_ACCESS)) {
+      return ~0L;
+    }
+
+    ServerMemberId memberId = new ServerMemberId(userId, serverId);
+    ServerMember member = repository.findByIdWithRoles(memberId)
+      .orElseThrow(() -> new IllegalArgumentException("No member with such id"));
+    Set<String> userRoleIds = member.getRoles().stream()
+      .map(role -> role.getId().toString())
+      .collect(Collectors.toSet());
+
+    List<ChannelPermissionOverride> overrides = overrideRepository.findByChannelId(channelId);
+
+    return permissionCalculator.calculateChannelPermission(userId, serverId, basePermission, userRoleIds, overrides);
+  }
+
+  @Override
+  public boolean hasChannelPermission(UUID userId, Long serverId, Long channelId, ServerRolePermissions rolePermission) {
+    long effectiveMask = getEffectiveChannelPermissions(userId, serverId, channelId);
+    return ServerRolePermissions.isGranted(effectiveMask, rolePermission);
+  }
+
+  @Override
+  public void requestChannelPermission(UUID userId, Long serverId, Long channelId, ServerRolePermissions rolePermission) {
+    if (!hasChannelPermission(userId, serverId, channelId, rolePermission)) {
+      throw new AccessDeniedException("You don't have permission '" + rolePermission.getTitle() + "' in this channel");
+    }
+  }
+
+}
