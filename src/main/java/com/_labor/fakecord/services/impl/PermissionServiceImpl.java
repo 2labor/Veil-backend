@@ -1,7 +1,9 @@
 package com._labor.fakecord.services.impl;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -126,6 +128,41 @@ public class PermissionServiceImpl implements PermissionService {
     if (!hasChannelPermission(userId, serverId, channelId, rolePermission)) {
       throw new AccessDeniedException("You don't have permission '" + rolePermission.getTitle() + "' in this channel");
     }
+  }
+
+  @Override
+  public Set<Long> getAccessibleChannels(UUID operatorId, Long serverId, List<Long> channelIds, ServerRolePermissions permissions) {
+    if (channelIds == null || channelIds.isEmpty()) return Set.of();
+
+    long basePermission = getEffectivePermissions(operatorId, serverId);
+    if (ServerRolePermissions.isGranted(basePermission, ServerRolePermissions.ADMIN_ACCESS)) {
+      return new HashSet<>(channelIds);
+    }
+
+    ServerMemberId memberId = new ServerMemberId(operatorId, serverId);
+    ServerMember member = repository.findByIdWithRoles(memberId)
+      .orElseThrow(() -> new AccessDeniedException("User is not a member of this server"));
+    
+    Set<String> userRoleIds = member.getRoles().stream()
+      .map(role -> role.getId().toString())
+      .collect(Collectors.toSet());
+
+    List<ChannelPermissionOverride> allOverrides = overrideRepository.findByChannelIdIn(channelIds);
+
+    Map<Long, List<ChannelPermissionOverride>> overridesByChannel = allOverrides.stream()
+      .collect(Collectors.groupingBy(ChannelPermissionOverride::getChannelId));
+
+    Set<Long> allowedChannelIds = new HashSet<>();
+    for (Long channelId : channelIds) {
+      List<ChannelPermissionOverride> channelOverrides = overridesByChannel.getOrDefault(channelId, List.of());
+
+      long effectiveMask = permissionCalculator.calculateChannelPermission(operatorId, serverId, basePermission, userRoleIds, channelOverrides);
+      if (ServerRolePermissions.isGranted(effectiveMask, permissions)) {
+        allowedChannelIds.add(channelId);
+      }
+    }
+
+    return allowedChannelIds;
   }
 
 }

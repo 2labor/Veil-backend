@@ -1,6 +1,7 @@
 package com._labor.fakecord.services;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import com._labor.fakecord.domain.dto.PermissionMetadataDto;
@@ -21,4 +22,6 @@ public interface PermissionService {
   long getEffectiveChannelPermissions(UUID userId, Long serverId, Long channelId);
   boolean hasChannelPermission(UUID userId, Long serverId, Long channelId, ServerRolePermissions rolePermission);
   void requestChannelPermission(UUID userId, Long serverId, Long channelId, ServerRolePermissions rolePermission);
+
+  Set<Long> getAccessibleChannels(UUID operatorId, Long serverId, List<Long> channelIds, ServerRolePermissions permissions);
 }
