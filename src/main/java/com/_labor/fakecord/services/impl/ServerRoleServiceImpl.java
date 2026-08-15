@@ -27,7 +27,7 @@ public class ServerRoleServiceImpl implements ServerRoleService {
   private String name;
 
   @Value("${veil.default-role.role-color}")
-  private String hexColor;
+private String hexColor;
 
   @Value("${veil.default-role.role-position}")
   private Integer position;
@@ -64,8 +64,6 @@ public class ServerRoleServiceImpl implements ServerRoleService {
   @Transactional
   @Override
   public ServerRole addRoleOnServer(UUID operatorId, Long serverId, ServerRole newRole) {
-    permissionService.requirePermission(operatorId, serverId, ServerRolePermissions.MANAGE_ROLES);
-
     permissionService.requireCanGrantPermissions(operatorId, serverId, newRole.getPermissions());
 
     Integer rolePos = repository.findMaxPositionByServerId(serverId);
@@ -78,8 +76,6 @@ public class ServerRoleServiceImpl implements ServerRoleService {
   @Transactional
   @Override
   public ServerRole updateRoleOnServer(UUID operatorId, Long serverId, ServerRole updatedRole) {
-    permissionService.requirePermission(operatorId, serverId, ServerRolePermissions.MANAGE_ROLES);
-    
     ServerRole existingRole = repository.findById(updatedRole.getId())
     .orElseThrow(() -> new IllegalArgumentException("No role with such id on server!"));
     
@@ -100,8 +96,6 @@ public class ServerRoleServiceImpl implements ServerRoleService {
   @Transactional
   @Override
   public void deleteRole(UUID operatorId, Long serverId, Long targetRoleId) {
-    permissionService.requirePermission(operatorId, serverId, ServerRolePermissions.MANAGE_ROLES);
-    
     ServerRole roleToDelete = repository.findById(targetRoleId)
       .orElseThrow(() -> new IllegalArgumentException("No role with such id: " + targetRoleId));
 
@@ -121,8 +115,6 @@ public class ServerRoleServiceImpl implements ServerRoleService {
   @Transactional
   @Override
   public void addRolesToMember(UUID operatorId, Long serverId, UUID targetUserId, Long targetRoleId) {
-    permissionService.requirePermission(operatorId, serverId, ServerRolePermissions.MANAGE_USERS);
-
     ServerRole roleToAdd = repository.findById(targetRoleId)
       .orElseThrow(() -> new IllegalArgumentException("No role found with id: " + targetRoleId));
 
@@ -140,8 +132,6 @@ public class ServerRoleServiceImpl implements ServerRoleService {
   @Transactional
   @Override
   public void removeRoleFromMember(UUID operantId, Long serverId, UUID targetUserId, Long targetRoleId) {
-    permissionService.requirePermission(operantId, serverId, ServerRolePermissions.MANAGE_USERS);
-
     ServerRole roleToRemove = repository.findById(targetRoleId)
       .orElseThrow(() -> new IllegalArgumentException("No role with id: " + targetRoleId));
 
@@ -157,18 +147,13 @@ public class ServerRoleServiceImpl implements ServerRoleService {
 
   @Override
   public List<ServerRole> getAllServerRoles(UUID operatorId, Long serverId) {
-    if (!serverMemberService.checkIsUserMember(serverId, operatorId)) throw new AccessDeniedException("You are not a member of this server");
-
-    permissionService.requirePermission(operatorId, serverId, ServerRolePermissions.MANAGE_ROLES);
-    
+    if (!serverMemberService.checkIsUserMember(serverId, operatorId)) throw new AccessDeniedException("You are not a member of this server");    
     return repository.findByServerIdOrderByPositionDesc(serverId);
   }
 
   @Override
   public ServerRole getRoleById(UUID operatorId, Long serverId, Long roleId) {
     if(!serverMemberService.checkIsUserMember(serverId, operatorId)) throw new AccessDeniedException("You are not a member of this server");
-
-    permissionService.requirePermission(operatorId, serverId, ServerRolePermissions.MANAGE_ROLES);
 
     ServerRole role = repository.findById(roleId)
       .orElseThrow(() -> new IllegalArgumentException("No role with such id: " + roleId));

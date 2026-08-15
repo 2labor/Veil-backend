@@ -17,7 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com._labor.fakecord.domain.dto.ServerInviteCreateDto;
 import com._labor.fakecord.domain.dto.ServerInviteResponseDto;
 import com._labor.fakecord.domain.entity.ServerInvite;
+import com._labor.fakecord.domain.enums.ServerRolePermissions;
 import com._labor.fakecord.domain.mappper.ServerInviteMapper;
+import com._labor.fakecord.security.permissions.RequirePermission;
 import com._labor.fakecord.services.ServerInviteService;
 
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,7 @@ public class ServerInviteController {
   private final ServerInviteMapper mapper;
   
   @PostMapping("/servers/{serverId}/invites")
+  @RequirePermission(ServerRolePermissions.CREATE_INSTANT_INVITE)
   public ResponseEntity<ServerInviteResponseDto> createInvite(
     Principal principal,
     @PathVariable Long serverId,
@@ -54,6 +57,7 @@ public class ServerInviteController {
   }
 
   @DeleteMapping("/servers/{serverId}/invites/{code}")
+  @RequirePermission(ServerRolePermissions.MANAGE_INVITES)
   public ResponseEntity<Void> removeInvite(
     Principal principal,
     @PathVariable Long serverId,
@@ -65,6 +69,7 @@ public class ServerInviteController {
   }
 
   @GetMapping("/servers/{serverId}/invites")
+  @RequirePermission(ServerRolePermissions.MANAGE_INVITES)
   public ResponseEntity<List<ServerInviteResponseDto>> getAllServerInvites(
     Principal principal,
     @PathVariable Long serverId
