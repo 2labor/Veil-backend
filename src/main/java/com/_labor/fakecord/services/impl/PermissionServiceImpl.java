@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com._labor.fakecord.domain.dto.PermissionMetadataDto;
+import com._labor.fakecord.domain.dto.UserChannelPermissionsDto;
 import com._labor.fakecord.domain.dto.UserServerPermissionsDto;
 import com._labor.fakecord.domain.entity.ChannelPermissionOverride;
 import com._labor.fakecord.domain.entity.ServerMember;
@@ -163,6 +164,14 @@ public class PermissionServiceImpl implements PermissionService {
     }
 
     return allowedChannelIds;
+  }
+
+  @Override
+  @Transactional
+  public UserChannelPermissionsDto getUserChannelPermission(UUID userId, Long serverId, Long chanelId) {
+    Long channelPermissionMask = getEffectiveChannelPermissions(userId, serverId, chanelId);
+
+    return new UserChannelPermissionsDto(serverId, chanelId, channelPermissionMask);
   }
 
 }
