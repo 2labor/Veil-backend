@@ -11,5 +11,6 @@ public record TopRoleDto(
   Long id,
   Integer position,
   String name,
-  String hexColor
+  String colorHex,
+  Boolean hoist
 ) {}
