@@ -16,14 +16,17 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com._labor.fakecord.domain.dto.GuildMessageContext;
 import com._labor.fakecord.domain.dto.MessageContext;
 import com._labor.fakecord.domain.dto.MessageDto;
 import com._labor.fakecord.domain.dto.MessageWindowDto;
 import com._labor.fakecord.domain.dto.ReplyPreviewDto;
 import com._labor.fakecord.domain.entity.Attachment;
+import com._labor.fakecord.domain.entity.Channel;
 import com._labor.fakecord.domain.entity.Message;
 import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.domain.enums.MessageType;
+import com._labor.fakecord.domain.enums.ServerRolePermissions;
 import com._labor.fakecord.domain.enums.SocketEventType;
 import com._labor.fakecord.infrastructure.id.IdGenerator;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
@@ -37,6 +40,7 @@ import com._labor.fakecord.services.AttachmentService;
 import com._labor.fakecord.services.MessageBroadcaster;
 import com._labor.fakecord.services.MessageEnricher;
 import com._labor.fakecord.services.MessageService;
+import com._labor.fakecord.services.PermissionService;
 import com._labor.fakecord.services.validation.ChannelAccessValidator;
 import com._labor.fakecord.services.validation.MessageValidator;
 import com._labor.fakecord.services.validation.SocialGuard;
@@ -61,6 +65,7 @@ public class MessageServiceImpl implements MessageService{
   private final AttachmentService attachmentService;
   private final MessageEnricher enricher;
   private final OutboxService outboxService;
+  private final PermissionService permissionService;
   
 
   @Override
@@ -73,8 +78,23 @@ public class MessageServiceImpl implements MessageService{
       return null;
     }
 
-    MessageContext messageContext = channelMemberRepository.getMessageContext(channelId, authorId)
-      .orElseThrow(() -> new RuntimeException("ACCESS_DENIED_TO_CHANNEL"));
+    Channel channel = channelRepository.findById(channelId)
+      .orElseThrow(() -> new IllegalArgumentException("No channel with such id: " + channelId));
+
+    MessageContext messageContext;
+
+    if (channel.getType().isGuildType()) {
+      permissionService.requestChannelPermission(authorId, channel.getServerId(), channelId, ServerRolePermissions.WRITE_TO_CHANNEL);
+
+      messageContext = GuildMessageContext.builder()
+        .serverId(channel.getServerId())
+        .channelType(channel.getType())
+        .channelName(channel.getName())
+        .build();
+    } else {
+      messageContext = channelMemberRepository.getMessageContext(channelId, authorId)
+        .orElseThrow(() -> new AccessDeniedException("ACCESS_DENIED_TO_CHANNEL"));
+    }
 
     if (parentId != null) {
       validateParentMessage(parentId, channelId);

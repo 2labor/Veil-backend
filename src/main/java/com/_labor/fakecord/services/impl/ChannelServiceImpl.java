@@ -1,7 +1,6 @@
 package com._labor.fakecord.services.impl;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -16,15 +15,11 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com._labor.fakecord.domain.dto.ChannelResponseDto;
 import com._labor.fakecord.domain.entity.Channel;
 import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.domain.enums.NotificationPriority;
 import com._labor.fakecord.domain.enums.NotificationType;
-import com._labor.fakecord.domain.enums.SocketEventType;
-import com._labor.fakecord.domain.enums.UserStatus;
-import com._labor.fakecord.domain.mappper.ChannelMapper;
-import com._labor.fakecord.domain.mappper.UserProfileMapper;
+import com._labor.fakecord.domain.enums.ServerRolePermissions;
 import com._labor.fakecord.domain.notifications.SystemNotification;
 import com._labor.fakecord.infrastructure.id.IdGenerator;
 import com._labor.fakecord.infrastructure.outbox.domain.payload.ChannelCreatedPayload;
@@ -32,10 +27,9 @@ import com._labor.fakecord.repository.ChannelRepository;
 import com._labor.fakecord.repository.MessageRepository;
 import com._labor.fakecord.services.ChannelMemberService;
 import com._labor.fakecord.services.ChannelService;
-import com._labor.fakecord.services.MessageBroadcaster;
 import com._labor.fakecord.services.NotificationService;
+import com._labor.fakecord.services.PermissionService;
 import com._labor.fakecord.services.ServerMemberService;
-import com._labor.fakecord.services.UserProfileCache;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,10 +44,8 @@ public class ChannelServiceImpl implements ChannelService {
   private final IdGenerator idGenerator;
   private final ChannelMemberService memberService;
   private final NotificationService notificationService;
-  private final ChannelMapper mapper;
-  private final UserProfileCache profileCache;
-  private final UserProfileMapper profileMapper;
   private final ServerMemberService serverMemberService;
+  private final PermissionService permissionService;
 
   @Override
   @Transactional
@@ -170,16 +162,22 @@ public class ChannelServiceImpl implements ChannelService {
   @Override
   @Transactional(readOnly = true)
   public List<Channel> getChannelsByServer(Long serverId, UUID userId) {
-    List<Channel> channels = repository.findAllByServerIdAndUserId(serverId, userId);
-
-    if (channels.isEmpty()) {
-      boolean isUserMember = serverMemberService.checkIsUserMember(serverId, userId);
-      if (!isUserMember) {
-        throw new AccessDeniedException("You do not have permission to view this server's channels.");
-      }
+    if (!serverMemberService.checkIsUserMember(serverId, userId)) {
+      throw new AccessDeniedException("You do not have permission to view this server's channels");
     }
 
-    return channels;
+    List<Channel> allChannels = repository.findAllByServerIdOrderByPositionAsc(serverId);
+    if (allChannels.isEmpty()) {
+      return List.of();
+    }
+
+    List<Long> allChannelIds = allChannels.stream()
+      .map(Channel::getId)
+      .toList();
+
+    Set<Long> allowedChannels = permissionService.getAccessibleChannels(userId, serverId, allChannelIds, ServerRolePermissions.READ_CHANNEL);
+
+    return allChannels.stream().filter(channel -> allowedChannels.contains(channel.getId())).toList();
   }
 
   @Override

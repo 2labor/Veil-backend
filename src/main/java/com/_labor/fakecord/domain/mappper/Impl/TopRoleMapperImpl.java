@@ -17,7 +17,8 @@ public class TopRoleMapperImpl implements TopRoleMapper {
       .id(entity.getId())
       .position(entity.getPosition())
       .name(entity.getName())
-      .hexColor(entity.getColorHex())
+      .colorHex(entity.getColorHex())
+      .hoist(entity.isHoist())
       .build();
   }
   

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com._labor.fakecord.domain.dto.PermissionMetadataDto;
+import com._labor.fakecord.domain.dto.UserChannelPermissionsDto;
 import com._labor.fakecord.domain.dto.UserServerPermissionsDto;
 import com._labor.fakecord.services.PermissionService;
 
@@ -35,6 +36,17 @@ public class PermissionController {
   ) {
     UUID userId = getUserId(principal);
     return ResponseEntity.ok(service.getUserPermissionsOnServer(userId, serverId));
+  }
+
+  @GetMapping("/servers/{serverId}/channels/{channelId}/my-permissions")
+  public ResponseEntity<UserChannelPermissionsDto> getChannelPermission(
+    Principal principal,
+    @PathVariable Long serverId,
+    @PathVariable Long channelId
+  ) {
+    UUID userId = getUserId(principal);
+
+    return ResponseEntity.ok(service.getUserChannelPermission(userId, serverId, channelId));
   }
 
   private UUID getUserId(Principal principal) {

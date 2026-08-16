@@ -5,8 +5,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com._labor.fakecord.domain.dto.ChannelOverrideResponseDto;
 import com._labor.fakecord.domain.entity.ChannelPermissionOverride;
+import com._labor.fakecord.domain.enums.ServerRolePermissions;
 import com._labor.fakecord.domain.mappper.ChannelPermissionOverrideMapper;
 import com._labor.fakecord.domain.request.SetChannelOverrideRequest;
+import com._labor.fakecord.security.permissions.RequirePermission;
 import com._labor.fakecord.services.ChannelPermissionOverrideService;
 
 import jakarta.validation.Valid;
@@ -34,6 +36,7 @@ public class ChannelOverrideController {
   private final ChannelPermissionOverrideMapper mapper;
 
   @GetMapping()
+  @RequirePermission(value = ServerRolePermissions.MANAGE_CHANNELS, channelId = "#channelId")
   public ResponseEntity<List<ChannelOverrideResponseDto>> getChannelPermissions(
     Principal principal,
     @PathVariable Long serverId, 
@@ -46,6 +49,7 @@ public class ChannelOverrideController {
   }
 
   @PutMapping("/{holderId}")
+  @RequirePermission(value = ServerRolePermissions.MANAGE_CHANNELS, channelId = "#channelId")
   public ResponseEntity<ChannelOverrideResponseDto> setChannelPermissions(
     Principal principal,
     @PathVariable Long serverId,
@@ -60,6 +64,7 @@ public class ChannelOverrideController {
   }
 
   @DeleteMapping("/{holderId}")
+  @RequirePermission(value = ServerRolePermissions.MANAGE_CHANNELS, channelId = "#channelId")
   public ResponseEntity<Void> deleteChannelPermission(
     Principal principal,
     @PathVariable Long serverId,

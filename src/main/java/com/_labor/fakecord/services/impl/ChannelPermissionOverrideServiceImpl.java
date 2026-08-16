@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com._labor.fakecord.domain.entity.ChannelPermissionOverride;
-import com._labor.fakecord.domain.enums.ServerRolePermissions;
 import com._labor.fakecord.domain.request.SetChannelOverrideRequest;
 import com._labor.fakecord.repository.ChannelPermissionOverrideRepository;
 import com._labor.fakecord.services.ChannelPermissionOverrideService;
@@ -25,16 +24,12 @@ public class ChannelPermissionOverrideServiceImpl implements ChannelPermissionOv
   @Override
   @Transactional(readOnly = true)
   public List<ChannelPermissionOverride> getChannelPermissionsOverride(UUID operatorId, Long serverId, Long channelId) {
-    permissionService.requirePermission(operatorId, serverId, ServerRolePermissions.MANAGE_CHANNELS);
-
     return repository.findByChannelId(channelId);
   }
 
   @Override
   @Transactional
   public ChannelPermissionOverride setChannelPermissionOverride(UUID operatorId, Long serverId, Long channelId, String holderId, SetChannelOverrideRequest request) {
-    permissionService.requirePermission(operatorId, serverId, ServerRolePermissions.MANAGE_CHANNELS);
-
     long combinedTargetMask = request.allowMask() | request.denyMask();
     permissionService.requireCanGrantPermissions(operatorId, serverId, combinedTargetMask);
 
@@ -55,7 +50,6 @@ public class ChannelPermissionOverrideServiceImpl implements ChannelPermissionOv
   @Override
   @Transactional
   public void deleteChannelPermissionOverride(UUID operatorId, Long serverId, Long channelId, String holderId) {
-    permissionService.requirePermission(operatorId, serverId, ServerRolePermissions.MANAGE_CHANNELS);
     repository.deleteByChannelIdAndHolderId(channelId, holderId);
   }
   

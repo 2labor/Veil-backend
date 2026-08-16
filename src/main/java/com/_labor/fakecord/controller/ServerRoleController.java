@@ -20,7 +20,9 @@ import com._labor.fakecord.domain.dto.ServerRoleResponseDto;
 import com._labor.fakecord.domain.dto.ServerRoleShortDto;
 import com._labor.fakecord.domain.dto.ServerRoleUpdateDto;
 import com._labor.fakecord.domain.entity.ServerRole;
+import com._labor.fakecord.domain.enums.ServerRolePermissions;
 import com._labor.fakecord.domain.mappper.ServerRoleMapper;
+import com._labor.fakecord.security.permissions.RequirePermission;
 import com._labor.fakecord.services.ServerRoleService;
 
 import jakarta.validation.Valid;
@@ -35,6 +37,7 @@ public class ServerRoleController {
   private final ServerRoleMapper mapper;
 
   @PostMapping("/roles")
+  @RequirePermission(ServerRolePermissions.MANAGE_ROLES)
   ResponseEntity<ServerRoleResponseDto> addRoleOnServer(
     @PathVariable Long serverId,
     Principal principal,
@@ -47,6 +50,7 @@ public class ServerRoleController {
   }  
 
   @PutMapping("/roles/{roleId}")
+  @RequirePermission(ServerRolePermissions.MANAGE_ROLES)
   ResponseEntity<ServerRoleResponseDto> updateRoleOnServer(
     Principal principal,
     @PathVariable Long serverId,
@@ -61,6 +65,7 @@ public class ServerRoleController {
   }
 
   @GetMapping("/roles")
+  @RequirePermission(ServerRolePermissions.MANAGE_ROLES)
   ResponseEntity<List<ServerRoleShortDto>> getAllServerRolesShort(
     Principal principal,
     @PathVariable Long serverId
@@ -71,6 +76,7 @@ public class ServerRoleController {
   }
 
   @GetMapping("/roles/{roleId}")
+  @RequirePermission(ServerRolePermissions.MANAGE_ROLES)
   ResponseEntity<ServerRoleResponseDto> getRoleById(
     Principal principal, 
     @PathVariable Long serverId,
@@ -82,6 +88,7 @@ public class ServerRoleController {
   }
 
   @DeleteMapping("/roles/{roleId}")
+  @RequirePermission(ServerRolePermissions.MANAGE_ROLES)
   ResponseEntity<Void> deleteRole(
     Principal principal,
     @PathVariable Long serverId,
@@ -93,6 +100,7 @@ public class ServerRoleController {
   }
 
   @PutMapping("/members/{targetUserId}/roles/{roleId}")
+  @RequirePermission(ServerRolePermissions.MANAGE_USERS)
   ResponseEntity<Void> addRoleToMember(
     Principal principal,
     @PathVariable Long serverId,
@@ -105,6 +113,7 @@ public class ServerRoleController {
   }
 
   @DeleteMapping("/members/{targetUserId}/roles/{roleId}")
+  @RequirePermission(ServerRolePermissions.MANAGE_USERS)
   ResponseEntity<Void> removeRoleFromMember(
     Principal principal,
     @PathVariable Long serverId,
