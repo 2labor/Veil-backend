@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com._labor.fakecord.domain.entity.ChannelPermissionOverride;
 import com._labor.fakecord.domain.request.SetChannelOverrideRequest;
+import com._labor.fakecord.infrastructure.cache.services.PermissionCache;
 import com._labor.fakecord.repository.ChannelPermissionOverrideRepository;
 import com._labor.fakecord.services.ChannelPermissionOverrideService;
 import com._labor.fakecord.services.PermissionService;
@@ -20,6 +21,7 @@ public class ChannelPermissionOverrideServiceImpl implements ChannelPermissionOv
 
   private final ChannelPermissionOverrideRepository repository;
   private final PermissionService permissionService;
+  private final PermissionCache permissionCache;
   
   @Override
   @Transactional(readOnly = true)
@@ -44,6 +46,7 @@ public class ChannelPermissionOverrideServiceImpl implements ChannelPermissionOv
     override.setAllowMask(request.allowMask());
     override.setDenyMask(request.denyMask());
 
+    permissionCache.evictChannelPermissionsAll(serverId);
     return repository.save(override);
   }
 
@@ -51,6 +54,7 @@ public class ChannelPermissionOverrideServiceImpl implements ChannelPermissionOv
   @Transactional
   public void deleteChannelPermissionOverride(UUID operatorId, Long serverId, Long channelId, String holderId) {
     repository.deleteByChannelIdAndHolderId(channelId, holderId);
+    permissionCache.evictChannelPermissionsAll(serverId);
   }
   
 }

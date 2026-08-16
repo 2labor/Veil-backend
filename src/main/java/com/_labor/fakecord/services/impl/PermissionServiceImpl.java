@@ -20,6 +20,7 @@ import com._labor.fakecord.domain.entity.ServerMember;
 import com._labor.fakecord.domain.entity.ServerMemberId;
 import com._labor.fakecord.domain.enums.ServerRolePermissions;
 import com._labor.fakecord.domain.policy.ChannelPermissionCalculator;
+import com._labor.fakecord.infrastructure.cache.services.PermissionCache;
 import com._labor.fakecord.repository.ChannelPermissionOverrideRepository;
 import com._labor.fakecord.repository.ServerMemberRepository;
 import com._labor.fakecord.services.PermissionService;
@@ -35,20 +36,16 @@ public class PermissionServiceImpl implements PermissionService {
   private final ServerSecurityService serverSecurityService;
   private final ChannelPermissionOverrideRepository overrideRepository;
   private final ChannelPermissionCalculator permissionCalculator;
+  private final PermissionCache cacheProvider;
 
   @Transactional(readOnly = true)
   @Override
   public long getEffectivePermissions(UUID userId, Long serverId) {
-    if (serverSecurityService.isUserOwner(userId, serverId)) { 
-      return ~0L;
-    }
-
-    ServerMemberId id = new ServerMemberId(userId, serverId);
-
-    ServerMember member = repository.findByIdWithRoles(id)
-      .orElseThrow(() -> new AccessDeniedException("User is not a member of this server"));
-
-    return ServerRolePermissions.calculateOverAllPermission(member.getRoles());
+    return cacheProvider.getServerPermission(
+      userId,
+      serverId,
+      () -> calculateServerPermissionsFromDb(userId, serverId)
+    );
   }
 
   @Override
@@ -100,22 +97,11 @@ public class PermissionServiceImpl implements PermissionService {
 
   @Override
   public long getEffectiveChannelPermissions(UUID userId, Long serverId, Long channelId) {
-    long basePermission = getEffectivePermissions(userId, serverId);
-
-    if (ServerRolePermissions.isGranted(basePermission, ServerRolePermissions.ADMIN_ACCESS)) {
-      return ~0L;
-    }
-
-    ServerMemberId memberId = new ServerMemberId(userId, serverId);
-    ServerMember member = repository.findByIdWithRoles(memberId)
-      .orElseThrow(() -> new IllegalArgumentException("No member with such id"));
-    Set<String> userRoleIds = member.getRoles().stream()
-      .map(role -> role.getId().toString())
-      .collect(Collectors.toSet());
-
-    List<ChannelPermissionOverride> overrides = overrideRepository.findByChannelId(channelId);
-
-    return permissionCalculator.calculateChannelPermission(userId, serverId, basePermission, userRoleIds, overrides);
+    return cacheProvider.getChannelPermission(
+      userId, 
+      serverId, 
+      channelId, 
+      () -> calculateChannelPermissionsFromDb(userId, serverId, channelId));
   }
 
   @Override
@@ -172,6 +158,37 @@ public class PermissionServiceImpl implements PermissionService {
     Long channelPermissionMask = getEffectiveChannelPermissions(userId, serverId, chanelId);
 
     return new UserChannelPermissionsDto(serverId, chanelId, channelPermissionMask);
+  }
+
+  private Long calculateServerPermissionsFromDb(UUID userId, Long serverId) {
+    if (serverSecurityService.isUserOwner(userId, serverId)) {
+      return ~0L;
+    }
+
+    ServerMemberId memberId = new ServerMemberId(userId, serverId);
+    ServerMember member = repository.findByIdWithRoles(memberId)
+      .orElseThrow(() -> new IllegalArgumentException("No user with such id: " + memberId.getUserId()));
+
+    return ServerRolePermissions.calculateOverAllPermission(member.getRoles());
+  }
+
+  private Long calculateChannelPermissionsFromDb(UUID userId, Long channelId, Long serverId) {
+    long basePermission = getEffectivePermissions(userId, serverId);
+
+    if (ServerRolePermissions.isGranted(basePermission, ServerRolePermissions.ADMIN_ACCESS)) {
+      return ~0L;
+    }
+
+    ServerMemberId memberId = new ServerMemberId(userId, serverId);
+    ServerMember serverMember = repository.findByIdWithRoles(memberId)
+      .orElseThrow(() -> new IllegalArgumentException("No server member with such id: " + userId));
+    
+    Set<String> userRoleIds = serverMember.getRoles().stream()
+      .map(role -> role.getId().toString())
+      .collect(Collectors.toSet());
+
+    List<ChannelPermissionOverride> channelOverride = overrideRepository.findByChannelId(channelId);
+    return permissionCalculator.calculateChannelPermission(userId, serverId, basePermission, userRoleIds, channelOverride);
   }
 
 }

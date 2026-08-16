@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import com._labor.fakecord.domain.entity.ServerMember;
 import com._labor.fakecord.domain.entity.ServerRole;
 import com._labor.fakecord.domain.enums.ServerRolePermissions;
+import com._labor.fakecord.infrastructure.cache.services.PermissionCache;
 import com._labor.fakecord.infrastructure.id.IdGenerator;
 import com._labor.fakecord.repository.ServerRolesRepository;
 import com._labor.fakecord.services.PermissionService;
@@ -37,6 +38,7 @@ private String hexColor;
   private final PermissionService permissionService;
   private final ServerSecurityService serverSecurityService;
   private final ServerMemberService serverMemberService;
+  private final PermissionCache cacheProvider;
 
   @Transactional
   @Override
@@ -70,6 +72,7 @@ private String hexColor;
     newRole.setPosition(rolePos + 1);
     newRole.setId(idGenerator.nextId());
     newRole.setServerId(serverId);
+    cacheProvider.evictServerPermissionAll(serverId);
     return repository.save(newRole);
   }
 
@@ -90,6 +93,8 @@ private String hexColor;
     existingRole.setHoist(updatedRole.isHoist());
     existingRole.setColorHex(updatedRole.getColorHex());
     existingRole.setPermissions(updatedRole.getPermissions());
+
+    cacheProvider.evictServerPermissionAll(serverId);
     return repository.save(existingRole);
   }
 
@@ -110,6 +115,7 @@ private String hexColor;
     checkRoleHierarchy(operatorId, serverId, roleToDelete.getPosition());
 
     repository.delete(roleToDelete);
+    cacheProvider.evictServerPermissionAll(serverId);
   }
 
   @Transactional
@@ -127,6 +133,7 @@ private String hexColor;
     permissionService.requireCanGrantPermissions(operatorId, serverId, roleToAdd.getPermissions());
     ServerMember member = serverMemberService.getMemberWithRoles(operatorId, targetUserId, serverId);
     member.addRole(roleToAdd);
+    cacheProvider.evictUserServerPermission(serverId, targetUserId);
   }
 
   @Transactional
@@ -143,6 +150,7 @@ private String hexColor;
 
     ServerMember member = serverMemberService.getMemberWithRoles(operantId, targetUserId, serverId);
     member.removeRole(roleToRemove);
+    cacheProvider.evictUserServerPermission(serverId, targetUserId);
   }
 
   @Override
