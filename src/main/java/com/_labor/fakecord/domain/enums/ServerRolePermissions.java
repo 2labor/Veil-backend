@@ -22,8 +22,8 @@ public enum ServerRolePermissions {
   ADD_ATTACHMENTS(1L << 7, "Attach Files", "Allows uploading images, media, and files in chat", RolePermissionCategory.TEXT_CHANNEL),
   MANAGE_MESSAGES(1L << 8, "Manage Messages", "Allows deleting or pinning messages sent by other members", RolePermissionCategory.TEXT_CHANNEL),
   MANAGE_CHANNELS(1L << 9, "Manage Channels", "Allows creating, editing, or deleting text and voice channels", RolePermissionCategory.TEXT_CHANNEL),
-
-  ADMIN_ACCESS(1L << 10, "Administrator", "Grants full permissions and bypasses channel overrides. Dangerous permission!", RolePermissionCategory.ADMINISTRATION);
+  MANAGE_SERVER(1L << 10, "Menage channels", "Allows update and menage server credentials", RolePermissionCategory.SERVER),
+  ADMIN_ACCESS(1L << 11, "Administrator", "Grants full permissions and bypasses channel overrides. Dangerous permission!", RolePermissionCategory.ADMINISTRATION);
   
   private final Long mask;
   private final String title;

@@ -6,6 +6,7 @@ import com._labor.fakecord.domain.dto.ServerDto;
 import com._labor.fakecord.domain.dto.ServerSidebarResponseDto;
 import com._labor.fakecord.domain.entity.Server;
 import com._labor.fakecord.domain.mappper.ServerMapper;
+import com._labor.fakecord.domain.request.UpdateServerRequest;
 
 @Component
 public class ServerMapperImpl implements ServerMapper {
@@ -30,5 +31,16 @@ public class ServerMapperImpl implements ServerMapper {
       .iconUrl(entity.getIconUrl())
       .build();
   }
-  
+
+  @Override
+  public Server toEntity(UpdateServerRequest request) { 
+    if (request == null) return null;
+
+    return Server.builder()
+      .name(request.name())
+      .description(request.description())
+      .bannerUrl(request.bannerUrl())
+      .iconUrl(request.iconUrl())
+      .build();
+  }
 }

@@ -40,9 +40,6 @@ public class Server {
   @Column(name = "icon_url")
   private String iconUrl;
 
-  @Column(name = "position")
-  private Integer position;
-
   @Column(name = "created_at")
   private Instant createdAt;
 
@@ -50,14 +47,13 @@ public class Server {
   private Instant updatedAt;
 
   @Builder
-  public Server(Long id, UUID ownerId, String name, String description, String bannerUrl, String iconUrl, Integer position) {
+  public Server(Long id, UUID ownerId, String name, String description, String bannerUrl, String iconUrl) {
     this.id = id;
     this.ownerId = ownerId;
     this.name = name;
     this.description = description;
     this.bannerUrl = bannerUrl;
     this.iconUrl = iconUrl;
-    this.position = position != null ? position : 0;
   }
 
   @PrePersist 

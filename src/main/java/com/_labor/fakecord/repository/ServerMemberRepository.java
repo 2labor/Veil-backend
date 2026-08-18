@@ -6,15 +6,14 @@ import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
 
 import com._labor.fakecord.domain.entity.ServerMember;
 import com._labor.fakecord.domain.entity.ServerMemberId;
 
 import io.lettuce.core.dynamic.annotation.Param;
 
-@Repository
 public interface ServerMemberRepository extends JpaRepository<ServerMember, ServerMemberId> {
   @Query("SELECT DISTINCT sm FROM ServerMember sm " +
     "LEFT JOIN FETCH sm.roles r " +
@@ -27,6 +26,16 @@ public interface ServerMemberRepository extends JpaRepository<ServerMember, Serv
     "WHERE sm.id = :id")
   Optional<ServerMember> findByIdWithRoles(@Param("id") ServerMemberId id);
   boolean existsByIdServerIdAndIdUserId(Long serverId, UUID userId);
-  // ServerMember findByUserId(UUID userId);
-  // ServerMember findByServerId(Long serverId);
+
+  @Modifying
+  @Query("""
+    UPDATE ServerMember sm 
+    SET sm.position = :position 
+    WHERE sm.id.userId = :userId AND sm.id.serverId = :serverId
+  """)
+  int updateMemberPosition(
+    @Param("userId") UUID userId, 
+    @Param("serverId") Long serverId, 
+    @Param("position") Integer position
+  );
 }

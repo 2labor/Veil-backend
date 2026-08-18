@@ -1,8 +1,11 @@
 package com._labor.fakecord.services.impl;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,11 +15,13 @@ import com._labor.fakecord.domain.entity.ServerMember;
 import com._labor.fakecord.domain.entity.ServerMemberId;
 import com._labor.fakecord.domain.entity.ServerRole;
 import com._labor.fakecord.domain.enums.ChannelType;
+import com._labor.fakecord.infrastructure.cache.services.PermissionCache;
 import com._labor.fakecord.infrastructure.id.IdGenerator; 
 import com._labor.fakecord.repository.ServerMemberRepository;
 import com._labor.fakecord.repository.ServerRepository;
 import com._labor.fakecord.services.ChannelService;
 import com._labor.fakecord.services.ServerDomainService;
+import com._labor.fakecord.services.ServerMemberService;
 import com._labor.fakecord.services.ServerRoleService;
 
 import lombok.RequiredArgsConstructor;
@@ -31,6 +36,8 @@ public class ServerDomainServiceImpl implements ServerDomainService {
   private final IdGenerator idGenerator;
   private final ChannelService channelService;
   private final ServerRoleService rolesService;
+  private final ServerMemberService memberService;
+  private final PermissionCache cacheProvider;
 
   @Override
   @Transactional
@@ -63,6 +70,73 @@ public class ServerDomainServiceImpl implements ServerDomainService {
 
   @Override
   public List<Server> getUserServers(UUID userId) {
-    return repo.findByUserId(userId);
+    return repo.findAllByUserIdOrderedByPosition(userId);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Server getServerById(UUID operatorId, Long serverId) {
+    if (!memberService.checkIsUserMember(serverId, operatorId)) {
+      throw new AccessDeniedException("You cannot get server that you not member of!");
+    } 
+    
+    return repo.findById(serverId)
+      .orElseThrow(() -> new IllegalArgumentException("No server found with id: " + serverId));
+  }
+
+  @Override
+  @Transactional
+  public Server updateServer(UUID operatorId, Long targetServerId, Server updatedEntity) {
+    Server server = repo.findById(targetServerId)
+      .orElseThrow(() -> new IllegalArgumentException("No server with such id: " + targetServerId));
+  
+    if (updatedEntity.getName() != null && !updatedEntity.getName().isBlank()) {
+      server.setName(updatedEntity.getName());
+    }
+
+    server.setDescription(updatedEntity.getDescription());
+    server.setBannerUrl(updatedEntity.getBannerUrl());
+    server.setIconUrl(updatedEntity.getIconUrl());
+
+    log.info("Server {} successfully updated by user {}", targetServerId, operatorId);
+    return repo.save(server);
+  }
+
+  @Override
+  @Transactional
+  public void deleteServer(UUID operatorId, Long serverId) {
+    Server targetServer = repo.findById(serverId)
+      .orElseThrow(() -> new IllegalArgumentException("No server with such id!" + serverId));
+
+    if (!targetServer.getOwnerId().equals(operatorId)) {
+      throw new AccessDeniedException("Only server owner can delete server");
+    }
+
+    repo.delete(targetServer);
+
+    cacheProvider.evictServerPermissionAll(serverId);
+    cacheProvider.evictChannelPermissionsAll(serverId);
+  }
+
+  @Override
+  @Transactional
+  public void updateServerPositions(UUID operatorId, Map<Long, Integer> serverPositions) {
+    if (serverPositions == null || serverPositions.isEmpty()) {
+      throw new IllegalArgumentException("Positions cannot be empty!");
+    }
+    
+    Set<Long> inputServers = serverPositions.keySet();
+    
+    Set<Long> validServers = repo.findServerIdsByUserId(operatorId, inputServers);
+
+    if (validServers.size() != inputServers.size()) {
+      throw new IllegalArgumentException("User is not a member of one or more specified servers");
+    }
+    
+    serverPositions.forEach((serverId, position) -> 
+      memberRepository.updateMemberPosition(operatorId, serverId, position)
+    );
+
+    log.debug("Updated sidebar positions for user {}", operatorId);
   }
 }
