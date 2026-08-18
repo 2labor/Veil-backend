@@ -7,7 +7,8 @@ public enum RolePermissionCategory {
   GENERAL("General Server Permissions"),
   MEMBERSHIP("Membership & Moderation"),
   TEXT_CHANNEL("Text Channel Permissions"),
-  ADMINISTRATION("Advanced Administration"); 
+  ADMINISTRATION("Advanced Administration"), 
+  SERVER("Server settings and credentials");
 
   private final String displayName;
 

@@ -42,14 +42,18 @@ public class ServerMember {
   )
   private Set<ServerRole> roles = new HashSet<>();
 
+  @Column(name = "position")
+  private Integer position;
+
   @Column(name = "joined_at", nullable = false, updatable = false)
   private Instant joinedAt;
 
   @Builder
-  public ServerMember(ServerMemberId id, String userLocalName, Instant joinedAt) {
+  public ServerMember(ServerMemberId id, String userLocalName, Integer position, Instant joinedAt) {
     this.id = id;
     this.userLocalName = userLocalName;
     this.roles = new HashSet<>();
+    this.position = position != null ? position : 0;
     this.joinedAt = Instant.now();
   }  
 
