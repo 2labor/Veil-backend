@@ -1,11 +1,9 @@
 package com._labor.fakecord.controller;
 
 import java.security.Principal;
-import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -29,18 +27,20 @@ public class MediaController {
   @PostMapping("/avatar")
   public ResponseEntity<UploadResponse> getAvatarUrl(
     Principal principal,
-    @RequestParam ImageType type
+    @RequestParam ImageType type,
+    @RequestParam Long fileSize
   ) {
     UUID userId = UUID.fromString(principal.getName()); 
-    return ResponseEntity.ok(mediaService.getAvatarUploadUrl(userId, type));
+    return ResponseEntity.ok(mediaService.getAvatarUploadUrl(userId, type, fileSize));
   }
 
   @PostMapping("/banner")
   public ResponseEntity<UploadResponse> getBanner(
     Principal principal,
-    @RequestParam ImageType type
+    @RequestParam ImageType type,
+    @RequestParam Long fileSize
   ) {
     UUID userId = UUID.fromString(principal.getName()); 
-    return ResponseEntity.ok(mediaService.getBannerUploadUrl(userId, type));
+    return ResponseEntity.ok(mediaService.getBannerUploadUrl(userId, type, fileSize));
   }
 }

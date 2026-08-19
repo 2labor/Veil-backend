@@ -3,7 +3,6 @@ package com._labor.fakecord.infrastructure.storage;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.domain.dto.UploadResponse;
@@ -14,24 +13,20 @@ import com._labor.fakecord.domain.enums.AttachmentType;
 import com._labor.fakecord.domain.enums.ImageType;
 import com._labor.fakecord.domain.enums.MediaContentType;
 import com._labor.fakecord.domain.enums.MediaType;
-import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com._labor.fakecord.repository.AttachmentRepository;
 import com._labor.fakecord.repository.UserProfileRepository;
-import com._labor.fakecord.services.UserProfileCache;
-
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class MediaServiceImpl implements MediaService {
 
-  private final SecurityFilterChain filterChain;
   private final FileStorageService fileStorageService;
   private final UserProfileRepository profileRepository;
   private final AttachmentRepository attachmentRepository;
-  private final UserProfileCache cache;
-  private final OutboxService outboxService;
 
   @Value("${app.s3.endpoint}")
     private String s3Endpoint;
@@ -39,35 +34,21 @@ public class MediaServiceImpl implements MediaService {
   @Value("${app.s3.bucket-name}")
   private String bucketName;
 
-  public MediaServiceImpl(
-    FileStorageService fileStorageService,
-    UserProfileRepository profileRepository,
-    AttachmentRepository attachmentRepository,
-    UserProfileCache cache,
-    OutboxService outboxService, 
-    SecurityFilterChain filterChain
-  ) {
-    this.fileStorageService = fileStorageService;
-    this.profileRepository = profileRepository;
-    this.attachmentRepository = attachmentRepository;
-    this.cache = cache;
-    this.outboxService = outboxService;
-    this.filterChain = filterChain;
+  private final static long MAX_FILE_SIZE = 1024 * 1024 * 8;
+
+  @Override
+  @Transactional
+  public UploadResponse getAvatarUploadUrl(UUID userId, ImageType type, Long fileSize) {
+    return processUploadUrl(userId, type, MediaType.AVATAR, fileSize);
   }
 
   @Override
   @Transactional
-  public UploadResponse getAvatarUploadUrl(UUID userId, ImageType type) {
-    return processUploadUrl(userId, type, MediaType.AVATAR);
+  public UploadResponse getBannerUploadUrl(UUID userId, ImageType type, Long fileSize) {
+    return processUploadUrl(userId, type, MediaType.BANNER, fileSize);
   }
 
-  @Override
-  @Transactional
-  public UploadResponse getBannerUploadUrl(UUID userId, ImageType type) {
-    return processUploadUrl(userId, type, MediaType.BANNER);
-  }
-
-  private UploadResponse processUploadUrl(UUID userId, ImageType imageType, MediaType mediaType) {
+  private UploadResponse processUploadUrl(UUID userId, ImageType imageType, MediaType mediaType, Long fileSize) {
 
     log.info("Processing {} upload for user: {}", mediaType, userId);
 
@@ -76,7 +57,7 @@ public class MediaServiceImpl implements MediaService {
 
     String objectPath = mediaType.getFolder() + "/" + userId;
 
-    String uploadUrl = fileStorageService.generateUploadUrl(objectPath, imageType.getMimeType());
+    String uploadUrl = fileStorageService.generateUploadUrl(objectPath, imageType.getMimeType(), fileSize);
 
     String version = String.valueOf(System.currentTimeMillis());
     String publicUrl = String.format("%s/%s/%s?v=%s", s3Endpoint, bucketName, objectPath, version);
@@ -99,9 +80,7 @@ public class MediaServiceImpl implements MediaService {
 
     MediaContentType mediaType = MediaContentType.fromMimeType(contentType);
     
-    if (fileSize > 8 * 1024 * 1024) {
-      throw new IllegalArgumentException("File size exceeds 8MB limit");
-    } 
+    validateFileSize(fileSize, MAX_FILE_SIZE);
 
     UUID attachmentId = UUID.randomUUID();
 
@@ -123,7 +102,7 @@ public class MediaServiceImpl implements MediaService {
 
     attachmentRepository.save(attachment);
 
-    String uploadUrl = fileStorageService.generateUploadUrl(storagePath, contentType);
+    String uploadUrl = fileStorageService.generateUploadUrl(storagePath, contentType, fileSize);
     String publicUrl = String.format("%s/%s/%s", s3Endpoint, bucketName, storagePath);
 
     return UploadResponse.builder()
@@ -132,6 +111,16 @@ public class MediaServiceImpl implements MediaService {
       .publicUrl(publicUrl)
       .build();
   }  
+
+  private final void validateFileSize(Long fileSize, long maxSize) {
+    if (fileSize == null || fileSize <= 0) {
+      throw new IllegalArgumentException("File size has to be greater then 0!");
+    }
+
+    if (fileSize > maxSize) {
+      throw new IllegalArgumentException("File size has to be lees then: " + maxSize);
+    }
+  }
 
   private AttachmentType determineAttachmentType(String contentType) {
     if (contentType == null) return AttachmentType.DOCUMENT;

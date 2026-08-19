@@ -104,7 +104,7 @@ public class CachedFriendRequestServiceImpl implements  FriendRequestQueryServic
 
   @Override
   public long getCounterIncomingRequests(UUID userId) {
-    String cacheKey = "request:incoming:counter" + userId;
+    String cacheKey = "request:incoming:counterL" + userId;
 
     Long local = counterCache.getIfPresent(cacheKey);
     if (local != null) {
@@ -126,7 +126,7 @@ public class CachedFriendRequestServiceImpl implements  FriendRequestQueryServic
 
   @Override
   public long getCounterOutgoingRequests(UUID userId) {
-    String cacheKey = "request:outgoing:counter" + userId;
+    String cacheKey = "request:outgoing:counter:" + userId;
 
     Long local = counterCache.getIfPresent(cacheKey);
     if (local != null) {

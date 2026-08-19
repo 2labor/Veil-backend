@@ -172,7 +172,7 @@ public class PermissionServiceImpl implements PermissionService {
     return ServerRolePermissions.calculateOverAllPermission(member.getRoles());
   }
 
-  private Long calculateChannelPermissionsFromDb(UUID userId, Long channelId, Long serverId) {
+  private Long calculateChannelPermissionsFromDb(UUID userId, Long serverId, Long channelId) {
     long basePermission = getEffectivePermissions(userId, serverId);
 
     if (ServerRolePermissions.isGranted(basePermission, ServerRolePermissions.ADMIN_ACCESS)) {
