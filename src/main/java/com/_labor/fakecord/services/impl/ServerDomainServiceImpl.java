@@ -94,9 +94,17 @@ public class ServerDomainServiceImpl implements ServerDomainService {
       server.setName(updatedEntity.getName());
     }
 
-    server.setDescription(updatedEntity.getDescription());
-    server.setBannerUrl(updatedEntity.getBannerUrl());
-    server.setIconUrl(updatedEntity.getIconUrl());
+    if (updatedEntity.getDescription() != null) {
+      server.setDescription(updatedEntity.getDescription());
+    }
+
+    if (updatedEntity.getBannerUrl() != null) {
+      server.setBannerUrl(updatedEntity.getBannerUrl());
+    }
+    
+    if (updatedEntity.getIconUrl() != null) {
+      server.setIconUrl(updatedEntity.getIconUrl());
+    }
 
     log.info("Server {} successfully updated by user {}", targetServerId, operatorId);
     return repo.save(server);
