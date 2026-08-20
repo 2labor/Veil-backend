@@ -54,6 +54,7 @@ public class ServerDomainServiceImpl implements ServerDomainService {
       .ownerId(operatorId)
       .name(serverName)
       .iconUrl(iconUrl)
+      .memberCounter(1)
       .build();
     Server savedServer = repo.save(server);
     

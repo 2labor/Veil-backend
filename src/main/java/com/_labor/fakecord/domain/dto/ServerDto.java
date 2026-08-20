@@ -15,5 +15,6 @@ public record ServerDto(
   String name,
   String description,
   String bannerUrl,
-  String iconUrl
+  String iconUrl,
+  Integer memberCounter
 ) {}

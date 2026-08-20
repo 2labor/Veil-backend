@@ -5,12 +5,11 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com._labor.fakecord.domain.entity.Server;
-
-import io.lettuce.core.dynamic.annotation.Param;
-
 public interface ServerRepository extends JpaRepository<Server, Long>{
   boolean existsByIdAndOwnerId(Long id, UUID ownerId);
   @Query("""
@@ -26,4 +25,11 @@ public interface ServerRepository extends JpaRepository<Server, Long>{
     WHERE sm.id.userId = :userId AND sm.id.serverId IN :serverIds
   """)
   Set<Long> findServerIdsByUserId(@Param("userId") UUID userId, @Param("serverIds") Set<Long> serverIds);
+  @Modifying
+  @Query("UPDATE Server s SET s.memberCounter = s.memberCounter + 1 WHERE s.id = :serverId")
+  int incrementMemberCount(@Param("serverId") Long serverId);
+
+  @Modifying
+  @Query("UPDATE Server s SET s.memberCounter = s.memberCounter - 1 WHERE s.id = :serverId AND s.memberCounter > 0")
+  int decrementMemberCount(@Param("serverId") Long serverId);
 }

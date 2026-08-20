@@ -21,6 +21,7 @@ public class ServerMapperImpl implements ServerMapper {
       .description(entity.getDescription())
       .bannerUrl(entity.getBannerUrl())
       .iconUrl(entity.getIconUrl())
+      .memberCounter(entity.getMemberCounter())
       .build();
   }
 
@@ -55,6 +56,7 @@ public class ServerMapperImpl implements ServerMapper {
       .description(entity.getDescription())
       .bannerUrl(entity.getBannerUrl())
       .iconUrl(entity.getIconUrl())
+      .memberCounter(entity.getMemberCounter())
       .build();
   }
 
@@ -68,6 +70,7 @@ public class ServerMapperImpl implements ServerMapper {
       .description(dto.getDescription())
       .bannerUrl(dto.getBannerUrl())
       .iconUrl(dto.getIconUrl())
+      .memberCounter(dto.getMemberCounter())
       .build();
   }
 }

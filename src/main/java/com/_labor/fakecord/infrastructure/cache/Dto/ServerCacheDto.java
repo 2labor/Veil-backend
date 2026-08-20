@@ -19,4 +19,5 @@ public class ServerCacheDto implements Serializable {
   private String description;
   private String bannerUrl;
   private String iconUrl;
+  private Integer memberCounter;
 }
