@@ -10,6 +10,8 @@ import com._labor.fakecord.domain.entity.ServerMember;
 
 public interface ServerMemberService {
   ServerMember addMemberToServer(UUID userId, Long serverId);
+  void removeMemberFromServer(UUID userId, Long serverId);
+
   boolean checkIsUserMember(Long serverId, UUID userId);
   Slice<ServerMemberSidebarResponseDto> getServerMembers(Long serverId, UUID currentId, Pageable pageable);
   ServerMember getMemberWithRoles(UUID operatorId, UUID userId, Long serverId);

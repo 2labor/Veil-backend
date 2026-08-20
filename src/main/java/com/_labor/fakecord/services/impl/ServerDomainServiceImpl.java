@@ -17,9 +17,12 @@ import com._labor.fakecord.domain.entity.ServerRole;
 import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.domain.mappper.ServerMapper;
 import com._labor.fakecord.infrastructure.cache.Dto.ServerCacheDto;
-import com._labor.fakecord.infrastructure.cache.services.PermissionCache;
 import com._labor.fakecord.infrastructure.cache.services.ServerCache;
-import com._labor.fakecord.infrastructure.id.IdGenerator; 
+import com._labor.fakecord.infrastructure.id.IdGenerator;
+import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
+import com._labor.fakecord.infrastructure.outbox.domain.payload.ServerDeletedPayload;
+import com._labor.fakecord.infrastructure.outbox.domain.payload.ServerOwnershipTransferredPayload;
+import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com._labor.fakecord.repository.ServerMemberRepository;
 import com._labor.fakecord.repository.ServerRepository;
 import com._labor.fakecord.services.ChannelService;
@@ -40,9 +43,9 @@ public class ServerDomainServiceImpl implements ServerDomainService {
   private final ChannelService channelService;
   private final ServerRoleService rolesService;
   private final ServerMemberService memberService;
-  private final PermissionCache permissionCache;
   private final ServerCache cacheProvider;
   private final ServerMapper mapper;
+  private final OutboxService outboxService;
 
   @Override
   @Transactional
@@ -132,9 +135,9 @@ public class ServerDomainServiceImpl implements ServerDomainService {
 
     repo.delete(targetServer);
 
-    permissionCache.evictServerPermissionAll(serverId);
-    permissionCache.evictChannelPermissionsAll(serverId);
-    cacheProvider.evict(serverId);
+    outboxService.publish(serverId.toString(), OutboxEventType.SERVER_DELETED, new ServerDeletedPayload(serverId));
+
+    log.info("Server {} deleted by owner {}", serverId, operatorId);
   }
 
   @Override
@@ -179,9 +182,33 @@ public class ServerDomainServiceImpl implements ServerDomainService {
     return cacheProvider.get(serverId, () -> fetchFromDb(serverId));
   }
 
-   private ServerCacheDto fetchFromDb(Long serverId) {
-    return repo.findById(serverId)
-      .map(mapper::toCacheDto)
-      .orElseThrow(() -> new IllegalArgumentException("No server with id: " + serverId));
+  @Override
+  @Transactional
+  public Server transferOwnership(UUID operatorId, Long serverId, UUID targetMemberId) {
+    Server server = repo.findById(serverId)
+      .orElseThrow(() -> new IllegalArgumentException("No server with such id: " + serverId));
+
+    if(!server.getOwnerId().equals(operatorId)) {
+      throw new AccessDeniedException("Only owner of the server are eligible to transfer ownership!");
+    }
+
+    if(!memberService.checkIsUserMember(serverId, targetMemberId)) {
+      throw new IllegalArgumentException("Member with id: " + targetMemberId + " is not server member!");
+    }
+
+    server.setOwnerId(targetMemberId);
+
+    Server saved = repo.save(server);
+
+    outboxService.publish(serverId.toString(), OutboxEventType.SERVER_OWNERSHIP_TRANSFERRED, new ServerOwnershipTransferredPayload(serverId, operatorId, targetMemberId));
+    
+    log.info("Ownership of server {} successfully transferred from {} to {}", serverId, operatorId, targetMemberId);
+    return saved;
+  }
+
+  private ServerCacheDto fetchFromDb(Long serverId) {
+  return repo.findById(serverId)
+    .map(mapper::toCacheDto)
+    .orElseThrow(() -> new IllegalArgumentException("No server with id: " + serverId));
   }
 }

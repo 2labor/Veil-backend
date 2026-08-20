@@ -18,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -57,6 +58,17 @@ public class ServerMemberController {
     UUID userId = getUserId(principal);
     ServerMemberResponseDto dto = facadeService.getMemberProfile(userId, targetMemberId, serverId);
     return ResponseEntity.ok(dto);
+  }
+
+  @DeleteMapping("/leave")
+  public ResponseEntity<Void> leaveTheServer(
+    Principal principal,
+    @PathVariable Long serverId
+  ) {
+    UUID userId = getUserId(principal);
+    service.removeMemberFromServer(userId, serverId);
+
+    return ResponseEntity.noContent().build();
   }
 
   private UUID getUserId(Principal principal) {
