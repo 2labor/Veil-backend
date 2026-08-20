@@ -7,6 +7,7 @@ import com._labor.fakecord.domain.dto.ServerSidebarResponseDto;
 import com._labor.fakecord.domain.entity.Server;
 import com._labor.fakecord.domain.mappper.ServerMapper;
 import com._labor.fakecord.domain.request.UpdateServerRequest;
+import com._labor.fakecord.infrastructure.cache.Dto.ServerCacheDto;
 
 @Component
 public class ServerMapperImpl implements ServerMapper {
@@ -41,6 +42,32 @@ public class ServerMapperImpl implements ServerMapper {
       .description(request.description())
       .bannerUrl(request.bannerUrl())
       .iconUrl(request.iconUrl())
+      .build();
+  }
+
+  @Override
+  public ServerCacheDto toCacheDto(Server entity) {
+    if (entity == null) return null;
+    return ServerCacheDto.builder()
+      .id(entity.getId())
+      .ownerId(entity.getOwnerId())
+      .name(entity.getName())
+      .description(entity.getDescription())
+      .bannerUrl(entity.getBannerUrl())
+      .iconUrl(entity.getIconUrl())
+      .build();
+  }
+
+  @Override
+  public Server toEntity(ServerCacheDto dto) {
+    if (dto == null) return null;
+    return Server.builder()
+      .id(dto.getId())
+      .ownerId(dto.getOwnerId())
+      .name(dto.getName())
+      .description(dto.getDescription())
+      .bannerUrl(dto.getBannerUrl())
+      .iconUrl(dto.getIconUrl())
       .build();
   }
 }

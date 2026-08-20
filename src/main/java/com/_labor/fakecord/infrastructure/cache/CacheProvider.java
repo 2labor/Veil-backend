@@ -33,7 +33,7 @@ public class CacheProvider {
   public <T> T get(String key, Duration ttl, Class<T> clazz, Supplier<T> dbFallback) {
     Object local = localCache.getIfPresent(key);
     if (local != null) {
-      return clazz.cast(local);
+      return convertValue(local, clazz);
     }
 
     return clazz.cast(localCache.get(key, k -> {
@@ -136,5 +136,19 @@ public class CacheProvider {
     } else {
       redisTemplate.opsForValue().set(key, value);
     }
+  }
+
+  private <T> T convertValue(Object obj, Class<T> clazz) {
+    if (obj == null) return null;
+
+    if (clazz.equals(Long.class) && obj instanceof Number number) {
+      return clazz.cast(number.longValue());
+    }
+
+    if (clazz.equals(Integer.class) && obj instanceof Number number) {
+        return clazz.cast(number.intValue());
+    }
+
+    return clazz.cast(obj);
   }
 }
