@@ -24,7 +24,7 @@ public class PermissionCacheImpl implements PermissionCache {
   public long getServerPermission(UUID userId, Long serverId, Supplier<Long> dbFallback) {
     if (userId == null || serverId == null) return 0L;
 
-    String key = SERVER_PERM_PREFIX + serverId + ":" +  userId;
+  String key = SERVER_PERM_PREFIX + serverId + ":" +  userId;
 
     Long cacheMask = provider.get(key, DEFAULT_TTL, Long.class, dbFallback);
 

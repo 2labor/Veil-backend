@@ -1,5 +1,6 @@
 package com._labor.fakecord.services.impl;
 
+import com._labor.fakecord.domain.dto.InviteResponseDto;
 import com._labor.fakecord.domain.dto.ServerInviteResponseDto;
 import java.util.List;
 import java.util.UUID;
@@ -10,9 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com._labor.fakecord.domain.entity.ServerInvite;
 import com._labor.fakecord.domain.mappper.ServerInviteMapper;
+import com._labor.fakecord.infrastructure.cache.Dto.ServerCacheDto;
 import com._labor.fakecord.infrastructure.cache.services.ServerInviteCache;
 import com._labor.fakecord.repository.ServerInviteRepository;
 import com._labor.fakecord.security.invites.InviteCodeGenerator;
+import com._labor.fakecord.services.ServerDomainService;
 import com._labor.fakecord.services.ServerInviteService;
 import com._labor.fakecord.services.ServerMemberService;
 
@@ -27,6 +30,7 @@ public class ServerInviteServiceImpl implements ServerInviteService {
   private final InviteCodeGenerator codeGenerator;
   private final ServerInviteMapper mapper;
   private final ServerMemberService serverMemberService;
+  private final ServerDomainService serversService;
 
   @Transactional
   @Override
@@ -62,10 +66,9 @@ public class ServerInviteServiceImpl implements ServerInviteService {
       cache.evict(code);
       throw new IllegalArgumentException("Invite code has reached its usage limit or expired");
     }
-
-    cache.evict(code);
-
+    serversService.incrementMemberCounter(serverInvite.serverId());
     serverMemberService.addMemberToServer(userId, serverInvite.serverId());
+    cache.evict(code);
   }
 
   @Transactional
@@ -88,6 +91,26 @@ public class ServerInviteServiceImpl implements ServerInviteService {
   public List<ServerInvite> getAllServerInvites(UUID operatorId, Long serverId) {
 
     return repository.findByServerId(serverId);
+  }
+
+  @Override
+  @Transactional(readOnly =  true)
+  public InviteResponseDto getInvitePreview(String code) {
+    ServerInvite invite = repository.findById(code)
+      .orElseThrow(() -> new IllegalArgumentException("Invalid or expired invite code"));
+
+    if (invite.isExpired()) {
+      throw new IllegalStateException("Invite code has expired");
+    }
+
+    ServerCacheDto serverInfo = serversService.getMetadata(invite.getServerId());
+    return InviteResponseDto.builder()
+      .serverName(serverInfo.getName())
+      .description(serverInfo.getDescription())
+      .iconUrl(serverInfo.getIconUrl())
+      .bannerUrl(serverInfo.getBannerUrl())
+      .memberCounter(serverInfo.getMemberCounter())
+      .build();
   }
   
 }

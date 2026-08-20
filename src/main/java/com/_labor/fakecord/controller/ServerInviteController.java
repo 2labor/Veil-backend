@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com._labor.fakecord.domain.dto.InviteResponseDto;
 import com._labor.fakecord.domain.dto.ServerInviteCreateDto;
 import com._labor.fakecord.domain.dto.ServerInviteResponseDto;
 import com._labor.fakecord.domain.entity.ServerInvite;
@@ -66,6 +67,13 @@ public class ServerInviteController {
     UUID userId = getUserId(principal);
     service.removeInvite(userId, serverId, code);
     return ResponseEntity.noContent().build();
+  }
+
+  @GetMapping("/invites/{code}")
+  public ResponseEntity<InviteResponseDto> getServerInvitePreview(
+    @PathVariable String code
+  ) {
+    return ResponseEntity.ok(service.getInvitePreview(code));
   }
 
   @GetMapping("/servers/{serverId}/invites")
