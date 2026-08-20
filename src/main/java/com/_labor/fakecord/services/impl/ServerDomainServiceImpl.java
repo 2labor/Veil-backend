@@ -179,9 +179,34 @@ public class ServerDomainServiceImpl implements ServerDomainService {
     return cacheProvider.get(serverId, () -> fetchFromDb(serverId));
   }
 
-   private ServerCacheDto fetchFromDb(Long serverId) {
-    return repo.findById(serverId)
-      .map(mapper::toCacheDto)
-      .orElseThrow(() -> new IllegalArgumentException("No server with id: " + serverId));
+  @Override
+  @Transactional
+  public Server transferOwnership(UUID operatorId, Long serverId, UUID targetMemberId) {
+    Server server = repo.findById(serverId)
+      .orElseThrow(() -> new IllegalArgumentException("No server with such id: " + serverId));
+
+    if(!server.getOwnerId().equals(operatorId)) {
+      throw new AccessDeniedException("Only owner of the server are eligible to transfer ownership!");
+    }
+
+    if(!memberService.checkIsUserMember(serverId, targetMemberId)) {
+      throw new IllegalArgumentException("Member with id: " + targetMemberId + " is not server member!");
+    }
+
+    server.setOwnerId(targetMemberId);
+
+    Server saved = repo.save(server);
+    cacheProvider.evict(serverId);
+    permissionCache.evictServerPermissionAll(serverId);
+    permissionCache.evictChannelPermissionsAll(serverId);
+
+    log.info("Ownership of server {} successfully transferred from {} to {}", serverId, operatorId, targetMemberId);
+    return saved;
+  }
+
+  private ServerCacheDto fetchFromDb(Long serverId) {
+  return repo.findById(serverId)
+    .map(mapper::toCacheDto)
+    .orElseThrow(() -> new IllegalArgumentException("No server with id: " + serverId));
   }
 }

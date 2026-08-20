@@ -116,6 +116,16 @@ public class ServerController {
     return ResponseEntity.noContent().build();
   }
 
+  @PostMapping("/{serverId}/transfer-ownership/{targetId}")
+  public ResponseEntity<ServerDto> transferOwnership(
+    Principal principal,
+    @PathVariable Long serverId,
+    @PathVariable UUID targetId
+  ) {
+    UUID userId = getUserId(principal);
+    return ResponseEntity.ok(mapper.toDto(service.transferOwnership(userId, serverId, targetId)));
+  }
+
   private UUID getUserId(Principal principal) {
     if (principal == null) {
       throw new IllegalStateException("Security principal is missing");

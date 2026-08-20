@@ -18,6 +18,8 @@ public interface ServerDomainService {
   void deleteServer(UUID operatorId, Long serverId);
   void updateServerPositions(UUID operatorId, Map<Long, Integer> serverPositions);
 
+  Server transferOwnership(UUID operatorId, Long serverId, UUID targetMemberId);
+
   void incrementMemberCounter(Long serverId);
   void decrementMemberCounter(Long serverId);
 }
