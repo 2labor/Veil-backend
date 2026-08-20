@@ -15,7 +15,10 @@ import com._labor.fakecord.domain.entity.ServerMember;
 import com._labor.fakecord.domain.entity.ServerMemberId;
 import com._labor.fakecord.domain.entity.ServerRole;
 import com._labor.fakecord.domain.enums.ChannelType;
+import com._labor.fakecord.domain.mappper.ServerMapper;
+import com._labor.fakecord.infrastructure.cache.Dto.ServerCacheDto;
 import com._labor.fakecord.infrastructure.cache.services.PermissionCache;
+import com._labor.fakecord.infrastructure.cache.services.ServerCache;
 import com._labor.fakecord.infrastructure.id.IdGenerator; 
 import com._labor.fakecord.repository.ServerMemberRepository;
 import com._labor.fakecord.repository.ServerRepository;
@@ -37,7 +40,9 @@ public class ServerDomainServiceImpl implements ServerDomainService {
   private final ChannelService channelService;
   private final ServerRoleService rolesService;
   private final ServerMemberService memberService;
-  private final PermissionCache cacheProvider;
+  private final PermissionCache permissionCache;
+  private final ServerCache cacheProvider;
+  private final ServerMapper mapper;
 
   @Override
   @Transactional
@@ -79,9 +84,10 @@ public class ServerDomainServiceImpl implements ServerDomainService {
     if (!memberService.checkIsUserMember(serverId, operatorId)) {
       throw new AccessDeniedException("You cannot get server that you not member of!");
     } 
-    
-    return repo.findById(serverId)
-      .orElseThrow(() -> new IllegalArgumentException("No server found with id: " + serverId));
+
+    ServerCacheDto cacheDto = cacheProvider.get(serverId, () -> fetchFromDb(serverId));
+
+    return mapper.toEntity(cacheDto);
   }
 
   @Override
@@ -107,7 +113,10 @@ public class ServerDomainServiceImpl implements ServerDomainService {
     }
 
     log.info("Server {} successfully updated by user {}", targetServerId, operatorId);
-    return repo.save(server);
+    Server saved = repo.save(server);
+    cacheProvider.evict(targetServerId);
+
+    return saved;
   }
 
   @Override
@@ -122,8 +131,9 @@ public class ServerDomainServiceImpl implements ServerDomainService {
 
     repo.delete(targetServer);
 
-    cacheProvider.evictServerPermissionAll(serverId);
-    cacheProvider.evictChannelPermissionsAll(serverId);
+    permissionCache.evictServerPermissionAll(serverId);
+    permissionCache.evictChannelPermissionsAll(serverId);
+    cacheProvider.evict(serverId);
   }
 
   @Override
@@ -146,5 +156,11 @@ public class ServerDomainServiceImpl implements ServerDomainService {
     );
 
     log.debug("Updated sidebar positions for user {}", operatorId);
+  }
+
+  private ServerCacheDto fetchFromDb(Long serverId) {
+    return repo.findById(serverId)
+      .map(mapper::toCacheDto)
+      .orElseThrow(() -> new IllegalArgumentException("No server with id: " + serverId));
   }
 }
