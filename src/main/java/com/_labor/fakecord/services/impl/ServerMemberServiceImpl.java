@@ -23,6 +23,7 @@ import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com._labor.fakecord.repository.ServerMemberRepository;
 import com._labor.fakecord.repository.ServerRolesRepository;
 import com._labor.fakecord.services.ServerMemberService;
+import com._labor.fakecord.services.ServerSecurityService;
 import com._labor.fakecord.services.UserProfileCache;
 
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ public class ServerMemberServiceImpl implements ServerMemberService {
   private final ServerMemberMapper mapper;
   private final UserProfileCache userProfileService;
   private final OutboxService outboxService;
+  private final ServerSecurityService serverService;
 
   @Override
   public boolean checkIsUserMember(Long serverId, UUID userId) {
@@ -128,8 +130,13 @@ public class ServerMemberServiceImpl implements ServerMemberService {
       throw new IllegalArgumentException("No user with such id: " + userId + "on server: " + serverId);
     }
 
+    if(serverService.isUserOwner(userId, serverId)) {
+      throw new IllegalStateException("Server owner cannot leave the server! Transfer ownership or delete the server instead.");
+    }
+
     repository.deleteById(new ServerMemberId(userId, serverId));
     outboxService.publish(serverId.toString(), OutboxEventType.SERVER_MEMBER_LEFT, new ServerMemberEventPayload(serverId, userId));
+
+    log.info("User {} successfully left server {}", userId, serverId);
   }
-  
 }
