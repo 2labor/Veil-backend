@@ -3,6 +3,7 @@ package com._labor.fakecord.services;
 import java.util.List;
 import java.util.UUID;
 
+import com._labor.fakecord.domain.dto.InviteResponseDto;
 import com._labor.fakecord.domain.entity.ServerInvite;
 
 public interface ServerInviteService {
@@ -10,4 +11,5 @@ public interface ServerInviteService {
   void acceptInvite(UUID userId, String code);
   void removeInvite(UUID operatorId, Long serverId, String code);
   List<ServerInvite> getAllServerInvites(UUID operatorId, Long serverId);
+  InviteResponseDto getInvitePreview(String code);
 }

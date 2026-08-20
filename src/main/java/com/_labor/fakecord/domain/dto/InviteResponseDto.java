@@ -8,5 +8,5 @@ public record InviteResponseDto(
   String description,
   String iconUrl,
   String bannerUrl,
-  int memberCounter
+  Integer memberCounter
 ) {}
