@@ -164,4 +164,16 @@ public class ServerDomainServiceImpl implements ServerDomainService {
       .map(mapper::toCacheDto)
       .orElseThrow(() -> new IllegalArgumentException("No server with id: " + serverId));
   }
+
+  @Override
+  public void incrementMemberCounter(Long serverId) {
+    if (serverId == null) return;
+    repo.incrementMemberCount(serverId);
+  }
+
+  @Override
+  public void decrementMemberCounter(Long serverId) {
+    if (serverId == null) return;
+    repo.decrementMemberCount(serverId);
+  }
 }

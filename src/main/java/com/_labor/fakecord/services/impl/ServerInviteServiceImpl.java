@@ -12,8 +12,8 @@ import com._labor.fakecord.domain.entity.ServerInvite;
 import com._labor.fakecord.domain.mappper.ServerInviteMapper;
 import com._labor.fakecord.infrastructure.cache.services.ServerInviteCache;
 import com._labor.fakecord.repository.ServerInviteRepository;
-import com._labor.fakecord.repository.ServerRepository;
 import com._labor.fakecord.security.invites.InviteCodeGenerator;
+import com._labor.fakecord.services.ServerDomainService;
 import com._labor.fakecord.services.ServerInviteService;
 import com._labor.fakecord.services.ServerMemberService;
 
@@ -28,7 +28,7 @@ public class ServerInviteServiceImpl implements ServerInviteService {
   private final InviteCodeGenerator codeGenerator;
   private final ServerInviteMapper mapper;
   private final ServerMemberService serverMemberService;
-  private final ServerRepository serverRepository;
+  private final ServerDomainService serversService;
 
   @Transactional
   @Override
@@ -66,7 +66,7 @@ public class ServerInviteServiceImpl implements ServerInviteService {
     }
 
     cache.evict(code);
-    serverRepository.incrementMemberCount(serverInvite.serverId());
+    serversService.incrementMemberCounter(serverInvite.serverId());
 
     serverMemberService.addMemberToServer(userId, serverInvite.serverId());
   }

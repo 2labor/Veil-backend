@@ -14,4 +14,7 @@ public interface ServerDomainService {
   Server updateServer(UUID operatorId, Long targetServerId, Server updatedEntity);
   void deleteServer(UUID operatorId, Long serverId);
   void updateServerPositions(UUID operatorId, Map<Long, Integer> serverPositions);
+
+  void incrementMemberCounter(Long serverId);
+  void decrementMemberCounter(Long serverId);
 }
