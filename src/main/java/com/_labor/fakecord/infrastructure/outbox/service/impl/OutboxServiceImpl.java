@@ -52,5 +52,28 @@ public class OutboxServiceImpl implements OutboxService {
       throw new RuntimeException("Event serialization failed", e);
     }
   }
+
+  @Override
+  public void publish(String aggregateId, OutboxEventType type, Object payload) {
+    try {
+      String jsonPayload = mapper.writeValueAsString(payload);
+
+      OutboxEvent event = OutboxEvent.builder()
+        .type(type)
+        .aggregateId(aggregateId)
+        .payload(jsonPayload)
+        .status(EventStatus.PENDING)
+        .retryCount(0)
+        .build();
+
+      repository.save(event);
+      publisher.publishEvent(new OutboxTickEvent());
+
+      log.info("Event {} for aggregate {} saved to outbox", type, aggregateId);
+    } catch (Exception e) {
+      log.error("Failed to map event payload to JSON for aggregate {}", aggregateId, e);
+      throw new RuntimeException("Event serialization failed", e);
+    }
+  }
   
 }

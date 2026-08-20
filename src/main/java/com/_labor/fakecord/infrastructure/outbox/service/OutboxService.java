@@ -6,4 +6,5 @@ import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
 
 public interface OutboxService {
   void publish(UUID aggregateId, OutboxEventType type, Object payload);
+  void publish(String aggregateId, OutboxEventType type, Object payload);
 }
