@@ -159,21 +159,29 @@ public class ServerDomainServiceImpl implements ServerDomainService {
     log.debug("Updated sidebar positions for user {}", operatorId);
   }
 
-  private ServerCacheDto fetchFromDb(Long serverId) {
-    return repo.findById(serverId)
-      .map(mapper::toCacheDto)
-      .orElseThrow(() -> new IllegalArgumentException("No server with id: " + serverId));
-  }
-
   @Override
   public void incrementMemberCounter(Long serverId) {
     if (serverId == null) return;
     repo.incrementMemberCount(serverId);
+    cacheProvider.evict(serverId);
   }
 
   @Override
   public void decrementMemberCounter(Long serverId) {
     if (serverId == null) return;
     repo.decrementMemberCount(serverId);
+    cacheProvider.evict(serverId);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public ServerCacheDto getMetadata(Long serverId) {
+    return cacheProvider.get(serverId, () -> fetchFromDb(serverId));
+  }
+
+   private ServerCacheDto fetchFromDb(Long serverId) {
+    return repo.findById(serverId)
+      .map(mapper::toCacheDto)
+      .orElseThrow(() -> new IllegalArgumentException("No server with id: " + serverId));
   }
 }

@@ -5,10 +5,13 @@ import java.util.Map;
 import java.util.UUID;
 
 import com._labor.fakecord.domain.entity.Server;
+import com._labor.fakecord.infrastructure.cache.Dto.ServerCacheDto;
 
 public interface ServerDomainService {
   Server createServer(UUID operatorId, String serverName, String iconUrl);
   List<Server> getUserServers(UUID userId);
+
+  ServerCacheDto getMetadata(Long serverId);
 
   Server getServerById(UUID operatorId, Long serverId);
   Server updateServer(UUID operatorId, Long targetServerId, Server updatedEntity);
