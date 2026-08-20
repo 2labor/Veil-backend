@@ -66,7 +66,6 @@ public class ServerInviteServiceImpl implements ServerInviteService {
       cache.evict(code);
       throw new IllegalArgumentException("Invite code has reached its usage limit or expired");
     }
-    serversService.incrementMemberCounter(serverInvite.serverId());
     serverMemberService.addMemberToServer(userId, serverInvite.serverId());
     cache.evict(code);
   }
@@ -80,7 +79,6 @@ public class ServerInviteServiceImpl implements ServerInviteService {
     if (!invite.getServerId().equals(serverId)) {
       throw new AccessDeniedException("Invite does not belong to this server");
     }
-
 
     repository.delete(invite);
     cache.evict(code);

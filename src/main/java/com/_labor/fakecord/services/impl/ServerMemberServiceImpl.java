@@ -1,6 +1,5 @@
 package com._labor.fakecord.services.impl;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -18,6 +17,9 @@ import com._labor.fakecord.domain.entity.ServerMember;
 import com._labor.fakecord.domain.entity.ServerMemberId;
 import com._labor.fakecord.domain.entity.ServerRole;
 import com._labor.fakecord.domain.mappper.ServerMemberMapper;
+import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
+import com._labor.fakecord.infrastructure.outbox.domain.payload.ServerMemberEventPayload;
+import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com._labor.fakecord.repository.ServerMemberRepository;
 import com._labor.fakecord.repository.ServerRolesRepository;
 import com._labor.fakecord.services.ServerMemberService;
@@ -35,6 +37,7 @@ public class ServerMemberServiceImpl implements ServerMemberService {
   private final ServerRolesRepository roleRepository;
   private final ServerMemberMapper mapper;
   private final UserProfileCache userProfileService;
+  private final OutboxService outboxService;
 
   @Override
   public boolean checkIsUserMember(Long serverId, UUID userId) {
@@ -95,6 +98,7 @@ public class ServerMemberServiceImpl implements ServerMemberService {
   }
 
   @Override
+  @Transactional
   public ServerMember addMemberToServer(UUID userId, Long serverId) {
     ServerMemberId memberId = new ServerMemberId(userId, serverId);
 
@@ -109,8 +113,23 @@ public class ServerMemberServiceImpl implements ServerMemberService {
         .build();
       newMember.addRole(defaultRole);
 
-      return repository.save(newMember);
+      ServerMember saved = repository.save(newMember);
+
+      outboxService.publish(serverId.toString(), OutboxEventType.SERVER_MEMBER_JOINED, new ServerMemberEventPayload(serverId, userId));
+
+      return saved;
     });
+  }
+
+  @Override
+  @Transactional
+  public void removeMemberFromServer(UUID userId, Long serverId) {
+    if (!checkIsUserMember(serverId, userId)) {
+      throw new IllegalArgumentException("No user with such id: " + userId + "on server: " + serverId);
+    }
+
+    repository.deleteById(new ServerMemberId(userId, serverId));
+    outboxService.publish(serverId.toString(), OutboxEventType.SERVER_MEMBER_LEFT, new ServerMemberEventPayload(serverId, userId));
   }
   
 }
